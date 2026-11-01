@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Guess the Word — Animal Mystery</title>
+<meta name="description" content="A cheerful animal word-guessing game: 10 levels, 40 mystery animals.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%233e8948'/%3E%3Ccircle cx='16' cy='14' r='7' fill='%23141414'/%3E%3Ccircle cx='14.5' cy='12.5' r='1.6' fill='%23fff'/%3E%3Crect x='8' y='23' width='16' height='3' rx='1.5' fill='%23f7d774'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app" class="app" aria-live="polite">
+
+  <!-- Loading / error surface -->
+  <div id="screen-loading" class="screen screen-loading">
+    <div class="panel small center">
+      <div class="spinner" aria-hidden="true"></div>
+      <h1 class="game-title">Guess the Word</h1>
+      <p class="subtitle">Animal Mystery</p>
+      <p class="muted" id="loading-msg">Getting the classroom ready…</p>
+    </div>
+  </div>
+  <div id="screen-error" class="screen screen-error hidden">
+    <div class="panel small center">
+      <h1 class="game-title">Oops!</h1>
+      <p id="error-msg" class="subtitle red">Something went wrong.</p>
+      <button class="btn btn-blue big" data-action="reload">Try again</button>
+    </div>
+  </div>
+
+  <!-- Home -->
+  <div id="screen-home" class="screen screen-home hidden">
+    <div class="home-wrap">
+      <div class="panel board-panel home-panel">
+        <h1 class="game-title chalk">Guess the Word</h1>
+        <p class="subtitle chalk-sub">ANIMAL&nbsp;MYSTERY</p>
+        <div class="home-animals" aria-hidden="true">
+          <img src="assets/silhouettes/q029.svg" alt="">
+          <img src="assets/silhouettes/q026.svg" alt="">
+          <img src="assets/silhouettes/q031.svg" alt="">
+        </div>
+        <button class="btn btn-green big" data-action="play">▶ PLAY</button>
+        <div class="home-row">
+          <button class="btn btn-blue" data-action="levels">Level Map</button>
+          <button class="btn btn-blue icon" data-action="sound" id="btn-sound" aria-label="Toggle sound">🔊 <span id="sound-state">On</span></button>
+        </div>
+        <p class="muted chalk-hint">Tap letters to spell the mystery animal!</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Level select -->
+  <div id="screen-levels" class="screen screen-levels hidden">
+    <div class="levels-wrap">
+      <div class="levels-head">
+        <button class="btn btn-blue icon" data-action="home" aria-label="Back to home">🏠</button>
+        <h2 class="levels-title">Choose a Level</h2>
+        <button class="btn btn-blue icon" data-action="sound" aria-label="Toggle sound">🔊</button>
+      </div>
+      <div id="level-grid" class="level-grid" role="list"></div>
+    </div>
+  </div>
+
+  <!-- Gameplay -->
+  <div id="screen-game" class="screen screen-game hidden">
+    <header class="hud" id="hud">
+      <div class="hud-left">
+        <button class="btn btn-blue hud-btn" data-action="pause" aria-label="Pause game">⏸</button>
+        <span class="hud-chip level-chip" id="hud-level">Level 1</span>
+        <span class="hud-chip" id="hud-question">1/4</span>
+      </div>
+      <div class="hud-right">
+        <span class="hud-chip hearts" id="hud-hearts" aria-label="Hearts"></span>
+        <span class="hud-chip timer-chip hidden" id="hud-timer">⏱ <b id="timer-text">70</b></span>
+        <span class="hud-chip score-chip" id="hud-score">0</span>
+      </div>
+    </header>
+
+    <div class="game-scroll" id="game-scroll">
+      <div class="board-wrap" id="board-wrap">
+        <img class="board-art" src="assets/art/board.png" alt="" draggable="false">
+        <div class="board-surface" id="board-surface">
+          <img class="silhouette" id="silhouette" src="assets/silhouettes/q001.svg"
+               alt="Mystery animal silhouette" draggable="false">
+          <div class="sparkles" id="sparkles" aria-hidden="true"></div>
+        </div>
+        <div class="bubble hidden" id="bubble" role="status"></div>
+      </div>
+
+      <div class="slots" id="slots" aria-label="Answer slots"></div>
+
+      <div class="bank-wrap">
+        <div class="bank" id="bank" aria-label="Letter buttons"></div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-orange action" data-action="undo">↩ Undo</button>
+        <button class="btn btn-red action" data-action="clear">✕ Clear</button>
+        <button class="btn btn-yellow action" data-action="hint" id="btn-hint">💡 Hint <span class="penalty">−25</span></button>
+      </div>
+    </div>
+
+    <footer class="progress-wrap">
+      <div class="progress-holder" id="progress-holder">
+        <img class="progress-art" src="assets/art/progress.png" alt="" draggable="false">
+        <div class="progress-tokens" id="progress-tokens" aria-label="Questions solved"></div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Modals -->
+  <div id="modal-overlay" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal" id="modal"></div>
+  </div>
+</div>
+
+<noscript><p class="noscript">This game needs JavaScript enabled.</p></noscript>
+
+<script src="js/letters.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/levels.js"></script>
+<script src="js/game.js"></script>
+<script src="js/asset-map.js"></script>
+<script src="js/renderer.js"></script>
+<script src="js/controls.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

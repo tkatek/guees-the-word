@@ -1,0 +1,365 @@
+{
+  "version": 1,
+  "questions": [
+    {
+      "id": "q001",
+      "levelId": "L01",
+      "animal": "Cat",
+      "answer": "CAT",
+      "silhouetteAsset": "assets/silhouettes/q001.svg",
+      "hint": "This purring pet naps in the sunniest spot of the house and says meow.",
+      "fact": "A cat sleeps up to 16 hours a day — napping is basically its full-time job."
+    },
+    {
+      "id": "q002",
+      "levelId": "L01",
+      "animal": "Dog",
+      "answer": "DOG",
+      "silhouetteAsset": "assets/silhouettes/q002.svg",
+      "hint": "Humans call it their best friend; it wags its tail when it is happy.",
+      "fact": "A dog's nose print is unique, just like a human fingerprint."
+    },
+    {
+      "id": "q003",
+      "levelId": "L01",
+      "animal": "Pig",
+      "answer": "PIG",
+      "silhouetteAsset": "assets/silhouettes/q003.svg",
+      "hint": "This pink farm animal loves rolling in cool mud puddles and says oink.",
+      "fact": "Pigs are very smart — they can learn tricks faster than puppies."
+    },
+    {
+      "id": "q004",
+      "levelId": "L01",
+      "animal": "Cow",
+      "answer": "COW",
+      "silhouetteAsset": "assets/silhouettes/q004.svg",
+      "hint": "This big spotted farm animal says moo and gives us milk.",
+      "fact": "A cow has one stomach with four separate compartments."
+    },
+    {
+      "id": "q005",
+      "levelId": "L02",
+      "animal": "Duck",
+      "answer": "DUCK",
+      "silhouetteAsset": "assets/silhouettes/q005.svg",
+      "hint": "It waddles when it walks, quacks when it talks, and paddles on the pond.",
+      "fact": "Ducks have waterproof feathers, so rain slides right off their backs."
+    },
+    {
+      "id": "q006",
+      "levelId": "L02",
+      "animal": "Frog",
+      "answer": "FROG",
+      "silhouetteAsset": "assets/silhouettes/q006.svg",
+      "hint": "This green hopper says ribbit and starts life as a wiggly tadpole.",
+      "fact": "Frogs drink water through their skin instead of their mouths."
+    },
+    {
+      "id": "q007",
+      "levelId": "L02",
+      "animal": "Fish",
+      "answer": "FISH",
+      "silhouetteAsset": "assets/silhouettes/q007.svg",
+      "hint": "It breathes underwater with gills and sparkles with shiny scales.",
+      "fact": "Fish were swimming in the oceans long before the dinosaurs appeared."
+    },
+    {
+      "id": "q008",
+      "levelId": "L02",
+      "animal": "Hen",
+      "answer": "HEN",
+      "silhouetteAsset": "assets/silhouettes/q008.svg",
+      "hint": "This clucking farm bird lays the eggs for your breakfast.",
+      "fact": "A hen can lay around 300 eggs in a single year."
+    },
+    {
+      "id": "q009",
+      "levelId": "L03",
+      "animal": "Lion",
+      "answer": "LION",
+      "silhouetteAsset": "assets/silhouettes/q009.svg",
+      "hint": "A big wild cat with a fluffy mane, called the king of the jungle.",
+      "fact": "A lion's roar can be heard from 8 kilometers away."
+    },
+    {
+      "id": "q010",
+      "levelId": "L03",
+      "animal": "Bear",
+      "answer": "BEAR",
+      "silhouetteAsset": "assets/silhouettes/q010.svg",
+      "hint": "This big furry forest animal loves honey and sleeps all winter long.",
+      "fact": "Bears can run as fast as a racehorse, even uphill."
+    },
+    {
+      "id": "q011",
+      "levelId": "L03",
+      "animal": "Goat",
+      "answer": "GOAT",
+      "silhouetteAsset": "assets/silhouettes/q011.svg",
+      "hint": "This horned farm climber will munch grass almost anywhere, even on a rooftop.",
+      "fact": "Goats have rectangular pupils that let them see almost all the way around them."
+    },
+    {
+      "id": "q012",
+      "levelId": "L03",
+      "animal": "Deer",
+      "answer": "DEER",
+      "silhouetteAsset": "assets/silhouettes/q012.svg",
+      "hint": "A graceful forest animal; the male grows brand-new antlers every year.",
+      "fact": "A deer can leap almost 3 meters high — nearly the height of a basketball hoop."
+    },
+    {
+      "id": "q013",
+      "levelId": "L04",
+      "animal": "Horse",
+      "answer": "HORSE",
+      "silhouetteAsset": "assets/silhouettes/q013.svg",
+      "hint": "People ride this strong, speedy animal, and it says neigh.",
+      "fact": "Horses can sleep standing up thanks to a special locking system in their legs."
+    },
+    {
+      "id": "q014",
+      "levelId": "L04",
+      "animal": "Sheep",
+      "answer": "SHEEP",
+      "silhouetteAsset": "assets/silhouettes/q014.svg",
+      "hint": "This woolly farm animal says baa and gives us warm winter sweaters.",
+      "fact": "Sheep can recognize dozens of faces and remember them for years."
+    },
+    {
+      "id": "q015",
+      "levelId": "L04",
+      "animal": "Snake",
+      "answer": "SNAKE",
+      "silhouetteAsset": "assets/silhouettes/q015.svg",
+      "hint": "A legless reptile that slithers silently and tastes the air with its tongue.",
+      "fact": "Snakes smell with their tongues — that is why they flick them."
+    },
+    {
+      "id": "q016",
+      "levelId": "L04",
+      "animal": "Mouse",
+      "answer": "MOUSE",
+      "silhouetteAsset": "assets/silhouettes/q016.svg",
+      "hint": "A tiny squeaky rodent with big ears and a long thin tail.",
+      "fact": "A mouse's tiny heart beats about 500 times every minute."
+    },
+    {
+      "id": "q017",
+      "levelId": "L05",
+      "animal": "Tiger",
+      "answer": "TIGER",
+      "silhouetteAsset": "assets/silhouettes/q017.svg",
+      "hint": "A giant wild cat with orange fur and bold black stripes.",
+      "fact": "Every tiger's stripe pattern is unique, like a human fingerprint."
+    },
+    {
+      "id": "q018",
+      "levelId": "L05",
+      "animal": "Zebra",
+      "answer": "ZEBRA",
+      "silhouetteAsset": "assets/silhouettes/q018.svg",
+      "hint": "A wild grassland animal dressed in stylish black and white stripes.",
+      "fact": "Scientists think a zebra's stripes help keep biting flies away."
+    },
+    {
+      "id": "q019",
+      "levelId": "L05",
+      "animal": "Panda",
+      "answer": "PANDA",
+      "silhouetteAsset": "assets/silhouettes/q019.svg",
+      "hint": "A black-and-white bear that munches bamboo nearly all day long.",
+      "fact": "A panda can spend up to 12 hours a day munching bamboo."
+    },
+    {
+      "id": "q020",
+      "levelId": "L05",
+      "animal": "Koala",
+      "answer": "KOALA",
+      "silhouetteAsset": "assets/silhouettes/q020.svg",
+      "hint": "This Australian tree-hugger clings to branches and sleeps up to 20 hours a day.",
+      "fact": "Koalas have fingerprints so similar to ours that they can confuse detectives."
+    },
+    {
+      "id": "q021",
+      "levelId": "L06",
+      "animal": "Rabbit",
+      "answer": "RABBIT",
+      "silhouetteAsset": "assets/silhouettes/q021.svg",
+      "hint": "A long-eared hopper that loves crunchy carrots and wiggles its nose.",
+      "fact": "A rabbit can rotate its ears almost all the way around to catch faint sounds."
+    },
+    {
+      "id": "q022",
+      "levelId": "L06",
+      "animal": "Monkey",
+      "answer": "MONKEY",
+      "silhouetteAsset": "assets/silhouettes/q022.svg",
+      "hint": "A playful tree climber with a long tail who swings from branch to branch.",
+      "fact": "Some monkeys use sticks as tools to fish out tasty termites."
+    },
+    {
+      "id": "q023",
+      "levelId": "L06",
+      "animal": "Turtle",
+      "answer": "TURTLE",
+      "silhouetteAsset": "assets/silhouettes/q023.svg",
+      "hint": "A slow and steady reptile that carries its own house on its back.",
+      "fact": "Some turtles live for more than 100 years."
+    },
+    {
+      "id": "q024",
+      "levelId": "L06",
+      "animal": "Camel",
+      "answer": "CAMEL",
+      "silhouetteAsset": "assets/silhouettes/q024.svg",
+      "hint": "A desert traveler with humps on its back that can go days without water.",
+      "fact": "A thirsty camel can drink about 100 liters of water in 10 minutes."
+    },
+    {
+      "id": "q025",
+      "levelId": "L07",
+      "animal": "Penguin",
+      "answer": "PENGUIN",
+      "silhouetteAsset": "assets/silhouettes/q025.svg",
+      "hint": "A bird in a tuxedo that cannot fly but zooms underwater like a torpedo.",
+      "fact": "Penguins slide on their bellies across the ice to travel quickly."
+    },
+    {
+      "id": "q026",
+      "levelId": "L07",
+      "animal": "Giraffe",
+      "answer": "GIRAFFE",
+      "silhouetteAsset": "assets/silhouettes/q026.svg",
+      "hint": "The tallest land animal, with a very long neck and a spotted coat.",
+      "fact": "A giraffe's tongue is around 50 centimeters long and dark purple."
+    },
+    {
+      "id": "q027",
+      "levelId": "L07",
+      "animal": "Dolphin",
+      "answer": "DOLPHIN",
+      "silhouetteAsset": "assets/silhouettes/q027.svg",
+      "hint": "A clever, playful sea mammal that chats with clicks and leaps over waves.",
+      "fact": "Dolphins sleep with one half of their brain awake at a time."
+    },
+    {
+      "id": "q028",
+      "levelId": "L07",
+      "animal": "Parrot",
+      "answer": "PARROT",
+      "silhouetteAsset": "assets/silhouettes/q028.svg",
+      "hint": "A colorful tropical bird that can copy human words.",
+      "fact": "A talented parrot can learn to imitate more than 100 words."
+    },
+    {
+      "id": "q029",
+      "levelId": "L08",
+      "animal": "Elephant",
+      "answer": "ELEPHANT",
+      "silhouetteAsset": "assets/silhouettes/q029.svg",
+      "hint": "The largest land animal on Earth, famous for its long trunk and big ears.",
+      "fact": "Elephants greet each other by wrapping their trunks together, like a hug."
+    },
+    {
+      "id": "q030",
+      "levelId": "L08",
+      "animal": "Kangaroo",
+      "answer": "KANGAROO",
+      "silhouetteAsset": "assets/silhouettes/q030.svg",
+      "hint": "An Australian hopper that carries its baby in a cozy pouch.",
+      "fact": "A kangaroo can cover 9 meters in a single giant hop."
+    },
+    {
+      "id": "q031",
+      "levelId": "L08",
+      "animal": "Flamingo",
+      "answer": "FLAMINGO",
+      "silhouetteAsset": "assets/silhouettes/q031.svg",
+      "hint": "A pink wading bird famous for standing on one long, skinny leg.",
+      "fact": "Flamingos turn pink because of the tiny shrimp they eat."
+    },
+    {
+      "id": "q032",
+      "levelId": "L08",
+      "animal": "Octopus",
+      "answer": "OCTOPUS",
+      "silhouetteAsset": "assets/silhouettes/q032.svg",
+      "hint": "A squishy sea creature with eight bendy arms and a very clever brain.",
+      "fact": "An octopus has three hearts and blue blood."
+    },
+    {
+      "id": "q033",
+      "levelId": "L09",
+      "animal": "Rhinoceros",
+      "answer": "RHINOCEROS",
+      "silhouetteAsset": "assets/silhouettes/q033.svg",
+      "hint": "A huge, thick-skinned mammal with a pointy horn on its nose.",
+      "fact": "A rhino's horn is made of keratin — the same material as your hair and nails."
+    },
+    {
+      "id": "q034",
+      "levelId": "L09",
+      "animal": "Chameleon",
+      "answer": "CHAMELEON",
+      "silhouetteAsset": "assets/silhouettes/q034.svg",
+      "hint": "A lizard that changes color, with eyes that look two ways at once and a curled tail.",
+      "fact": "A chameleon's tongue can stretch out twice the length of its body."
+    },
+    {
+      "id": "q035",
+      "levelId": "L09",
+      "animal": "Porcupine",
+      "answer": "PORCUPINE",
+      "silhouetteAsset": "assets/silhouettes/q035.svg",
+      "hint": "A slow, lumbering rodent covered in thousands of sharp, pointy quills.",
+      "fact": "A porcupine has around 30,000 quills, and they grow back if they fall out."
+    },
+    {
+      "id": "q036",
+      "levelId": "L09",
+      "animal": "Armadillo",
+      "answer": "ARMADILLO",
+      "silhouetteAsset": "assets/silhouettes/q036.svg",
+      "hint": "A little armored digger that wears a bony shell and can roll into a ball.",
+      "fact": "Some armadillos jump straight up into the air when they get startled."
+    },
+    {
+      "id": "q037",
+      "levelId": "L10",
+      "animal": "Hippopotamus",
+      "answer": "HIPPOPOTAMUS",
+      "silhouetteAsset": "assets/silhouettes/q037.svg",
+      "hint": "A huge river giant with an enormous mouth and smooth, hairless skin.",
+      "fact": "Hippos cannot really swim — they bounce along the river bottom instead."
+    },
+    {
+      "id": "q038",
+      "levelId": "L10",
+      "animal": "Woodpecker",
+      "answer": "WOODPECKER",
+      "silhouetteAsset": "assets/silhouettes/q038.svg",
+      "hint": "A bird that drums its strong beak against tree trunks to find tasty bugs.",
+      "fact": "A woodpecker can peck up to 20 times every single second."
+    },
+    {
+      "id": "q039",
+      "levelId": "L10",
+      "animal": "Hummingbird",
+      "answer": "HUMMINGBIRD",
+      "silhouetteAsset": "assets/silhouettes/q039.svg",
+      "hint": "The tiniest bird in the world; it hovers in mid-air and hums with fast wings.",
+      "fact": "A hummingbird's heart can beat more than 1,000 times per minute."
+    },
+    {
+      "id": "q040",
+      "levelId": "L10",
+      "animal": "Orangutan",
+      "answer": "ORANGUTAN",
+      "silhouetteAsset": "assets/silhouettes/q040.svg",
+      "hint": "A great ape with very long arms and shaggy red hair that swings through rainforests.",
+      "fact": "Orangutans hold big leaves over their heads as umbrellas when it rains."
+    }
+  ]
+}
