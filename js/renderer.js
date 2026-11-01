@@ -1,8 +1,11 @@
 /*
  * renderer.js — paints the game from AnimalGame.getPublicState() snapshots.
- * Pure DOM: keyed tiles/slots, HUD, progress tokens, modals, reveal animation.
- * NEVER reads engine internals; the answer/animal never exist in the DOM
- * before the engine reports success.
+ * Pure DOM: keyed tiles/slots, arcade HUD badges, sprite answer slots,
+ * glossy letter tiles, numbered progress markers, modals.
+ * The animal illustration mount (#animal-mount) stays EMPTY until real
+ * animal artwork is integrated — no drawn/fallback creatures, no image
+ * requests that could 404. NEVER reads engine internals; the answer/animal
+ * never exist in the DOM before the engine reports success.
  */
 (function (root, factory) {
   'use strict';
@@ -17,9 +20,6 @@
 
   var Letters = (typeof AnimalMystery !== 'undefined' && AnimalMystery.Letters) || null;
   var HEART = '♥';
-  var CHECK_SVG = '<svg viewBox="0 0 40 40" aria-hidden="true">' +
-    '<circle cx="20" cy="20" r="18" fill="#57c84d" stroke="#2f7d2a" stroke-width="3"/>' +
-    '<path d="M11 21 L17 27 L29 14" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   var STAR_LIT = '★';
   var STAR_OFF = '☆';
 
@@ -32,17 +32,22 @@
         loading: $('screen-loading'), error: $('screen-error'),
         home: $('screen-home'), levels: $('screen-levels'), game: $('screen-game')
       },
-      hud: { level: $('hud-level'), question: $('hud-question'), hearts: $('hud-hearts'), timer: $('hud-timer'), timerText: $('timer-text'), score: $('hud-score') },
-      boardWrap: $('board-wrap'), boardSurface: $('board-surface'), silhouette: $('silhouette'),
-      sparkles: $('sparkles'), bubble: $('bubble'), slots: $('slots'), bank: $('bank'),
-      btnHint: $('btn-hint'), levelGrid: $('level-grid'), progressTokens: $('progress-tokens'),
+      hud: {
+        level: $('hud-level'), question: $('hud-question'), hearts: $('hud-hearts'),
+        timer: $('hud-timer'), timerText: $('timer-text'), score: $('hud-score'),
+        practice: $('hud-practice')
+      },
+      boardFrame: $('board-frame'), animalMount: $('animal-mount'),
+      bubble: $('bubble'), slots: $('slots'), bank: $('bank'),
+      btnHint: $('btn-hint'), levelGrid: $('level-grid'),
+      progressTitle: $('progress-title'), progressMarkers: $('progress-markers'),
       overlay: $('modal-overlay'), modal: $('modal'), app: $('app'),
+      boardZone: $('board-zone'),
       soundState: $('sound-state')
     };
-    this._lastTiles = null;   // last rendered tile id list, to detect bank changes
+    this._lastTiles = null;
     this._lastSlots = null;
-    this._solved = -1;
-    this._wrongTimer = null;
+    this._step = -1;
     this._bubbleTimer = null;
   }
 
@@ -95,66 +100,81 @@
 
   Renderer.prototype.renderQuestion = function (state) {
     var e = this.el;
-    e.hud.level.textContent = 'Lv ' + (state.levelIndex + 1) + ' · ' + state.levelName;
-    e.hud.question.textContent = (state.questionIndex + 1) + '/' + state.questionCount;
-    e.hud.timer.classList.toggle('hidden', !state.timer);
+    e.hud.level.textContent = 'LEVEL ' + (state.levelIndex + 1);
+    e.hud.question.textContent = 'Q ' + (state.questionIndex + 1) + '/' + state.questionCount;
+    e.hud.timer.classList.toggle('hidden', !!state.timer);
+    e.hud.practice.classList.toggle('hidden', !state.timer);
     this._renderHearts(state.hearts, state.heartsMax);
-    this._renderSilhouette(state.silhouetteAsset);
-    e.boardSurface.classList.remove('revealed');
+    this._renderAnimalMount(state);
     this._renderSlots(state.slots, true);
-    this._renderBank(state.tiles, Letters.gridColumns(state.tiles.length), true);
+    this._renderBank(state.tiles, true);
     this._renderActions(state);
     this.hideBubble();
   };
 
-  // The SVG is inlined (not <img>) so page CSS can recolor it for the reveal.
-  // Silhouette markup is cached per src and preloaded ahead of time.
-  Renderer.prototype._svgCache = function () {
-    if (!this._svgs) this._svgs = {};
-    return this._svgs;
-  };
+  // Neutral, id-driven animal stage: two perfectly aligned copies of the SAME
+  // local illustration — a brightness(0) black layer on top of the full-color
+  // layer. Success crossfades them (CSS), so silhouette and color shapes match
+  // by construction. Files stay neutral (qNNN.svg); nothing about the animal
+  // leaks through markup. Missing files leave the board empty, never broken.
+  Renderer.prototype._renderAnimalMount = function (state) {
+    var mount = this.el.animalMount;
+    var qid = state.questionId ||
+      (state.silhouetteAsset || '').split('/').pop().replace('.svg', '');
+    if (!qid) return;
+    mount.setAttribute('aria-label', 'Mystery animal ' + (state.questionIndex + 1) + ' of ' + state.questionCount);
 
-  Renderer.prototype._fetchSvg = function (src) {
-    var cache = this._svgCache();
-    if (cache[src]) return Promise.resolve(cache[src]);
-    if (!window.fetch) return Promise.resolve(null);
-    return fetch(src).then(function (r) { return r.ok ? r.text() : null; }).catch(function () { return null; })
-      .then(function (text) { cache[src] = text; return text; });
-  };
+    if (!this._animalStage) {
+      var color = document.createElement('img');
+      color.className = 'animal-color';
+      color.alt = '';
+      color.draggable = false;
+      var black = document.createElement('img');
+      black.className = 'animal-black';
+      black.alt = '';
+      black.draggable = false;
+      mount.appendChild(color);
+      mount.appendChild(black);
+      this._animalStage = { color: color, black: black };
+      var self = this;
+      [color, black].forEach(function (img) {
+        img.addEventListener('error', function () {
+          img.classList.add('failed');
+          mount.dataset.failed = 'true';
+        });
+        img.addEventListener('load', function () {
+          img.classList.remove('failed');
+          delete mount.dataset.failed;
+        });
+      });
+    }
 
-  Renderer.prototype._renderSilhouette = function (src) {
-    var holder = this.el.boardSurface;
-    var img = this.el.silhouette;
-    var self = this;
-    // neutral colors keyed by the q-id inside the path, applied as CSS variables
-    var qid = src.split('/').pop().replace('.svg', '');
-    var colors = this.assets.colorsFor(qid);
-    holder.style.setProperty('--c1', colors.c1);
-    holder.style.setProperty('--c2', colors.c2);
-    holder.setAttribute('role', 'img');
-    holder.setAttribute('aria-label', 'Mystery animal silhouette');
-    if (this._silSrc === src && this._silNode) return;
-    this._silSrc = src;
-    this._fetchSvg(src).then(function (text) {
-      if (!text || self._silSrc !== src) return; // stale or missing
-      var div = document.createElement('div');
-      div.className = 'silhouette';
-      div.innerHTML = text;
-      var svg = div.querySelector('svg');
-      if (svg) {
-        svg.removeAttribute('aria-label');
-        svg.setAttribute('aria-hidden', 'true');
+    // Only touch the DOM when the question actually changes.
+    if (this._animalQid !== qid) {
+      this._animalQid = qid;
+      mount.dataset.qid = qid;
+      var url = this.assets.animalUrl(qid);
+      if (this._animalStage.color.getAttribute('src') !== url) {
+        this._animalStage.color.src = url;
+        this._animalStage.black.src = url;
       }
-      if (self._silNode) self._silNode.remove();
-      self._silNode = div;
-      holder.insertBefore(div, self.el.sparkles);
-      img.classList.add('hidden'); // fallback <img> hidden once inline SVG is in
-    });
+      mount.classList.remove('revealed'); // every new question starts black
+    } else {
+      mount.classList.remove('revealed');
+    }
   };
 
-  // Warm the cache for the NEXT question (never displayed until its turn).
-  Renderer.prototype.preloadSilhouette = function (src) {
-    this._fetchSvg(src);
+  // Warm the next animal's file so advancing questions never flashes empty.
+  Renderer.prototype.preloadSilhouette = function (questionAssetPath) {
+    var qid = (questionAssetPath || '').split('/').pop().replace('.svg', '');
+    if (!qid || !this.assets.animalUrl) return;
+    var img = new Image();
+    img.src = this.assets.animalUrl(qid);
+  };
+
+  // Called only from the engine's 'correct' event: black -> color crossfade.
+  Renderer.prototype.revealAnimal = function () {
+    this.el.animalMount.classList.add('revealed');
   };
 
   Renderer.prototype._renderHearts = function (hearts, max) {
@@ -170,6 +190,8 @@
     var needRebuild = rebuild || this._lastSlots === null || box.children.length !== slots.length;
     if (needRebuild) {
       box.innerHTML = '';
+      var cols = slots.length <= 8 ? slots.length : Math.ceil(slots.length / 2);
+      box.style.setProperty('--slot-cols', String(cols));
       slots.forEach(function (s, i) {
         var b = document.createElement('button');
         b.type = 'button';
@@ -178,29 +200,41 @@
         b.setAttribute('data-slot', String(i));
         b.setAttribute('aria-label', 'Answer slot ' + (i + 1) +
           (s.letter ? ', letter ' + s.letter + ', tap to remove' : ', empty'));
+        b.innerHTML = '<span class="art" aria-hidden="true"></span><span class="glyph" aria-hidden="true"></span>';
         box.appendChild(b);
       });
       this._lastSlots = slots.length;
     }
     Array.prototype.forEach.call(box.children, function (b, i) {
       var s = slots[i];
-      b.textContent = s.letter || '';
-      b.classList.toggle('filled', !!s.letter);
+      var glyph = b.querySelector('.glyph');
+      var had = glyph.textContent;
+      glyph.textContent = s.letter || '';
+      if (s.letter && s.letter !== had) {
+        glyph.classList.remove('pop');
+        void glyph.offsetWidth;
+        glyph.classList.add('pop');
+      }
       b.classList.toggle('locked', !!s.locked);
       b.disabled = !s.letter || s.locked;
+      b.setAttribute('aria-label', 'Answer slot ' + (i + 1) +
+        (s.letter ? (s.locked ? ', letter ' + s.letter + ' revealed by hint' : ', letter ' + s.letter + ', tap to remove') : ', empty'));
     });
-    box.classList.toggle('two-rows', slots.length > 8);
   };
 
-  Renderer.prototype._renderBank = function (tiles, columns, rebuild) {
+  Renderer.prototype._renderBank = function (tiles, rebuild) {
     var box = this.el.bank;
     var ids = tiles.map(function (t) { return t.id; }).join(',');
-    var needRebuild = rebuild || this._lastTiles !== ids;
-    if (needRebuild) {
+    if (rebuild || this._lastTiles !== ids) {
       box.innerHTML = '';
-      box.style.gridTemplateColumns = 'repeat(' + columns + ', auto)';
-      var self = this;
-      tiles.forEach(function (t) {
+      var count = tiles.length;
+      // desktop: one centered row up to 9 tiles, two balanced rows above that
+      var colsWide = count <= 9 ? count : Math.ceil(count / 2);
+      // phone: 3-4 column grid
+      var colsNarrow = Letters.gridColumns(count);
+      box.style.setProperty('--cols-wide', String(colsWide));
+      box.style.setProperty('--cols-narrow', String(colsNarrow));
+      tiles.forEach(function (t, i) {
         var b = document.createElement('button');
         b.type = 'button';
         b.className = 'tile';
@@ -208,8 +242,7 @@
         b.setAttribute('data-action', 'tile');
         b.setAttribute('data-tile', t.id);
         b.setAttribute('aria-label', 'Letter ' + t.letter);
-        b.style.animation = 'pop-in .18s ease both';
-        b.style.animationDelay = (tiles.indexOf(t) * 28) + 'ms';
+        b.style.animationDelay = (i * 26) + 'ms';
         box.appendChild(b);
       });
       this._lastTiles = ids;
@@ -230,44 +263,44 @@
   // Full snapshot sync (safe to call after every engine event).
   Renderer.prototype.syncGame = function (state) {
     this._renderSlots(state.slots);
-    this._renderBank(state.tiles, Letters.gridColumns(state.tiles.length));
+    this._renderBank(state.tiles);
     this._renderHearts(state.hearts, state.heartsMax);
     this._renderActions(state);
-    this.el.hud.score.textContent = state.levelScore;
+    this.el.hud.score.querySelector('b').textContent = state.levelScore;
     if (state.timer) {
-      var sec = Math.ceil(state.timer.remainingMs / 1000);
-      this.el.hud.timerText.textContent = String(sec);
-      this.el.hud.timer.classList.toggle('low', sec <= 10);
+      this.el.hud.timerText.textContent = String(Math.ceil(state.timer.remainingMs / 1000));
+      this.el.hud.timer.classList.toggle('low', state.timer.remainingMs <= 10500);
     }
-    this.el.screens.game.classList.toggle('paused', state.paused);
   };
 
+  // step = solved count (0..4); markers show done / current / upcoming states.
   Renderer.prototype.renderProgress = function (solvedCount) {
-    if (solvedCount === this._solved) return;
-    var tokens = this.el.progressTokens;
-    if (tokens.children.length !== 4) {
-      tokens.innerHTML = '';
+    if (solvedCount === this._step) return;
+    var box = this.el.progressMarkers;
+    if (box.children.length !== 4) {
+      box.innerHTML = '';
       for (var i = 0; i < 4; i++) {
-        var d = document.createElement('span');
-        d.className = 'token';
-        d.innerHTML = CHECK_SVG;
-        d.style.visibility = 'hidden';
-        tokens.appendChild(d);
+        var m = document.createElement('span');
+        m.className = 'marker';
+        m.textContent = String(i + 1);
+        m.setAttribute('aria-label', 'Question ' + (i + 1));
+        box.appendChild(m);
       }
     }
     for (var j = 0; j < 4; j++) {
-      var t = tokens.children[j];
-      var show = j < solvedCount;
-      if (show && t.style.visibility === 'hidden') {
-        t.style.visibility = 'visible';
-        t.classList.remove('pop');
-        void t.offsetWidth; // restart animation
-        t.classList.add('pop');
-      } else if (!show) {
-        t.style.visibility = 'hidden';
+      var el = box.children[j];
+      var isDone = j < solvedCount;
+      var isCurrent = j === solvedCount;
+      var was = el.className;
+      el.className = 'marker' + (isDone ? ' done' : isCurrent ? ' current' : '');
+      if (isDone && was.indexOf('done') === -1) {
+        el.classList.remove('pop');
+        void el.offsetWidth;
+        el.classList.add('pop');
       }
+      el.setAttribute('aria-label', 'Question ' + (j + 1) + (isDone ? ', solved' : isCurrent ? ', current' : ', upcoming'));
     }
-    this._solved = solvedCount;
+    this._step = solvedCount;
   };
 
   /* ---------------- feedback ---------------- */
@@ -299,13 +332,20 @@
     var d = document.createElement('div');
     d.className = 'reward-float';
     d.textContent = '+' + points;
-    this.el.boardWrap.appendChild(d);
-    setTimeout(function () { d.remove(); }, 1500);
+    this.el.boardZone.appendChild(d);
+    setTimeout(function () { d.remove(); }, 1400);
   };
 
   Renderer.prototype.revealSuccess = function (payload) {
-    this.el.boardSurface.classList.add('revealed');
-    var sp = this.el.sparkles;
+    this.revealAnimal(); // black silhouette -> full color, ~550ms crossfade
+    this.rewardFloat(payload.reward);
+    var zone = this.el.boardFrame;
+    var sp = zone.querySelector('.sparkles');
+    if (!sp) {
+      sp = document.createElement('div');
+      sp.className = 'sparkles';
+      zone.appendChild(sp);
+    }
     sp.classList.remove('go');
     sp.innerHTML = '';
     for (var i = 0; i < 10; i++) {
@@ -317,7 +357,6 @@
     }
     void sp.offsetWidth;
     sp.classList.add('go');
-    this.rewardFloat(payload.reward);
   };
 
   /* ---------------- modals ---------------- */
@@ -350,11 +389,9 @@
   };
 
   Renderer.prototype.showCorrect = function (payload, onContinueLabel) {
-    var cached = this._svgCache()[this._silSrc];
-    var colors = this.assets.colorsFor(this._silSrc.split('/').pop().replace('.svg', ''));
+    // The animal name is safe here: the engine emits 'correct' only after success.
     this.openModal(
       '<h2>' + payload.animal + '!</h2>' +
-      '<div class="reveal-img revealed" style="--c1:' + colors.c1 + ';--c2:' + colors.c2 + '">' + (cached || '') + '</div>' +
       '<div class="score-line">+' + payload.reward + ' points</div>' +
       '<div class="fact">💡 ' + payload.fact + '</div>' +
       '<div class="m-buttons">' +
@@ -398,5 +435,5 @@
     );
   };
 
-  return { Renderer: Renderer, CHECK_SVG: CHECK_SVG };
+  return { Renderer: Renderer };
 });

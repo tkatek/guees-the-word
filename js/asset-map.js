@@ -20,6 +20,13 @@
     progress: 'assets/art/progress.png'
   };
 
+  var ANIMALS_BASE = 'assets/animals/';
+
+  // Neutral qid -> local illustration URL (q001.svg … q040.svg).
+  function animalUrl(questionId) {
+    return ANIMALS_BASE + questionId + '.svg';
+  }
+
   var COLORS = {
     q001: { c1: '#F2A65A', c2: '#FBE3C5' },
     q002: { c1: '#C89B6B', c2: '#8A5A2B' },
@@ -78,5 +85,5 @@
     });
   }
 
-  return { ART: ART, COLORS: COLORS, colorsFor: colorsFor, preload: preload };
+  return { ART: ART, ANIMALS_BASE: ANIMALS_BASE, animalUrl: animalUrl, COLORS: COLORS, colorsFor: colorsFor, preload: preload };
 });

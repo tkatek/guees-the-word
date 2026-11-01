@@ -757,7 +757,7 @@ test('UI', 'asset map covers all 40 questions with two distinct reveal colors', 
 });
 
 test('UI', 'approved art files referenced by the page exist on disk', function () {
-  ['assets/art/board.png', 'assets/art/progress.png', 'assets/art/bg-desktop.png', 'assets/art/bg-phone.png'].forEach(function (f) {
+  ['assets/art/board.png', 'assets/art/progress.png', 'assets/art/bg-desktop.png', 'assets/art/bg-phone.png', 'assets/art/btn-undo.png', 'assets/art/btn-clear.png', 'assets/art/btn-hint.png', 'assets/art/btn-pause.png', 'assets/art/slot.png'].forEach(function (f) {
     ok(fs.existsSync(path.join(ROOT, f)), f + ' missing');
   });
   ['index.html', 'css/style.css', 'js/main.js', 'js/renderer.js', 'js/controls.js', 'js/asset-map.js'].forEach(function (f) {
@@ -784,6 +784,41 @@ test('UI', 'renderer recolor rules exist for both silhouette and modal reveal', 
   ['@media (max-width: 360px)', '100dvh', 'env(safe-area-inset-bottom)', 'prefers-reduced-motion'].forEach(function (s) {
     ok(css.indexOf(s) !== -1, 'css missing ' + s);
   });
+});
+
+console.log('');
+console.log('=== ANIMAL IMAGE INTEGRATION ===');
+
+test('ANIMALS', 'all 40 local animal illustrations exist, are valid SVG and leak no names', function () {
+  questionsData.questions.forEach(function (q) {
+    var file = path.join(ROOT, 'assets', 'animals', q.id + '.svg');
+    ok(fs.existsSync(file), q.id + ' animal illustration missing');
+    var t = fs.readFileSync(file, 'utf8');
+    ok(t.indexOf('<svg') !== -1 && /viewBox=/.test(t) && t.length > 200, q.id + ' invalid SVG');
+    questionsData.questions.forEach(function (other) {
+      ok(t.toLowerCase().indexOf(other.answer.toLowerCase()) === -1, q.id + ' leaks answer ' + other.answer);
+    });
+  });
+});
+
+test('ANIMALS', 'manifest covers 40 questions with source+license; resolver maps neutral ids', function () {
+  var manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'assets', 'animals', 'manifest.json'), 'utf8'));
+  questionsData.questions.forEach(function (q) {
+    var m = manifest[q.id];
+    ok(m && m.source && m.license && m.url, q.id + ' manifest entry incomplete');
+    ok(AssetMap.animalUrl(q.id) === 'assets/animals/' + q.id + '.svg', q.id + ' resolver path');
+  });
+});
+
+test('ANIMALS', 'one image in two states: black layer via brightness(0), color crossfade', function () {
+  var css = fs.readFileSync(path.join(ROOT, 'css', 'style.css'), 'utf8');
+  ok(css.indexOf('.animal-black') !== -1 && css.indexOf('brightness(0)') !== -1, 'black layer uses brightness(0)');
+  ok(css.indexOf('.animal-mount.revealed .animal-color') !== -1, 'color reveal rule');
+  var js = fs.readFileSync(path.join(ROOT, 'js', 'renderer.js'), 'utf8');
+  ok(js.indexOf('animalUrl') !== -1, 'renderer uses resolver');
+  ok(js.indexOf('revealAnimal') !== -1 && js.indexOf('revealSuccess') !== -1, 'reveal wired to success');
+  var engine = fs.readFileSync(path.join(ROOT, 'js', 'game.js'), 'utf8');
+  ok(engine.indexOf('questionId: this.question ? this.question.id : null') !== -1, 'public state exposes neutral questionId');
 });
 
 console.log('');

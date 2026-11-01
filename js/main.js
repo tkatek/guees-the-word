@@ -81,7 +81,6 @@
       renderer.renderQuestion(state);
       renderer.syncGame(state);
       renderer.renderProgress(state.questionIndex); // solved = index (previous ones done)
-      document.getElementById('game-scroll').scrollTop = 0;
     });
     game.on('place', function () { renderer.syncGame(game.getPublicState()); });
     game.on('undo', function () { renderer.syncGame(game.getPublicState()); });
