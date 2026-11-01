@@ -188,7 +188,7 @@ body {
   border-radius: 999px 999px 26px 26px / 70% 70% 26px 26px;
   padding: clamp(5px, 1.2vh, 12px) clamp(32px, 6vw, 92px) clamp(7px, 1.4vh, 14px);
   box-shadow: 0 5px 0 rgba(122, 74, 20, .45), 0 10px 20px rgba(30, 50, 66, .28);
-  margin: clamp(2px, .8vh, 8px) auto calc(clamp(14px, 3.2vh, 34px) * -1) auto; /* overlaps the board rim */
+  margin: clamp(2px, .8vh, 8px) auto clamp(4px, 1vh, 12px) auto;
   max-width: min(86vw, 840px);
 }
 .title-text {
@@ -225,7 +225,7 @@ body {
    Success crossfades the layers; shapes match because they are the same file. */
 .animal-mount {
   position: absolute;
-  left: 12%; right: 12%; top: 8%; bottom: 30%;   /* inside the green, above the chalk tray + bottom gap */
+  left: 12%; right: 12%; top: 10%; bottom: 20%;   /* centered inside the green surface, above the chalk tray */
   display: flex; align-items: center; justify-content: center;
 }
 .animal-mount img {
@@ -519,7 +519,7 @@ body {
 
 /* short landscape phones: compress the stack */
 @media (max-height: 600px) and (orientation: landscape) {
-  .title-banner { margin-bottom: -clamp(10px, 2.4vh, 20px); }
+  .title-banner { margin-bottom: clamp(4px, 1vh, 10px); }
   .board-frame { width: min(60vw, 66vh * 2.02); }
   .tile { --tile-w: clamp(36px, 8vh, 56px); }
   .slots { --slot-w: clamp(36px, 8vh, 56px); }
@@ -584,7 +584,7 @@ body {
 @media (orientation: landscape) and (max-height: 450px) {
   .bank { grid-template-columns: repeat(var(--cols-wide, 9), auto); }
   .board-frame { width: min(78vw, 26vh * 2.02); }
-  .title-banner { margin-bottom: -14px; }
+  .title-banner { margin-bottom: 6px; }
   .actions { margin-top: calc(var(--gap) * .5); }
   .stage { overflow-y: auto; }
 }
