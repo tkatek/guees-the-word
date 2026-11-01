@@ -39,6 +39,7 @@
       },
       boardFrame: $('board-frame'), animalMount: $('animal-mount'),
       bubble: $('bubble'), slots: $('slots'), bank: $('bank'),
+      stage: $('stage'),
       btnHint: $('btn-hint'), levelGrid: $('level-grid'),
       progressTitle: $('progress-title'), progressMarkers: $('progress-markers'),
       overlay: $('modal-overlay'), modal: $('modal'), app: $('app'),
@@ -100,6 +101,10 @@
 
   Renderer.prototype.renderQuestion = function (state) {
     var e = this.el;
+    var wordLength = state.slots.length;
+    e.stage.classList.toggle('long-word', wordLength >= 9);
+    e.stage.classList.toggle('hard-level', state.levelIndex >= 5);
+    e.stage.classList.toggle('extra-long-word', wordLength >= 11);
     e.hud.level.textContent = 'LEVEL ' + (state.levelIndex + 1);
     e.hud.question.textContent = 'Q ' + (state.questionIndex + 1) + '/' + state.questionCount;
     e.hud.timer.classList.toggle('hidden', !state.timer);

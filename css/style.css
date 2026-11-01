@@ -170,6 +170,7 @@ body {
 
 /* ---------- center stack ---------- */
 .stage {
+  position: relative;
   flex: 1;
   min-height: 0;
   display: flex; flex-direction: column; align-items: center;
@@ -218,6 +219,8 @@ body {
   aspect-ratio: 1448 / 715;
   filter: drop-shadow(0 10px 18px rgba(20, 40, 60, .38));
 }
+.stage.long-word .board-frame { width: min(78vw, 42vh * 2.02, 780px); }
+.stage.extra-long-word .board-frame { width: min(70vw, 36vh * 2.02, 780px); }
 .board-art { width: 100%; height: 100%; display: block; object-fit: contain; user-select: none; }
 
 /* animal illustration mount — one local image rendered twice:
@@ -587,6 +590,20 @@ body {
   .title-banner { margin-bottom: 6px; }
   .actions { margin-top: calc(var(--gap) * .5); }
   .stage { overflow-y: auto; }
+}
+
+@media (min-width: 961px) and (min-height: 560px) {
+  .stage.hard-level .actions {
+    position: absolute;
+    top: 50%;
+    right: clamp(8px, 3vw, 48px);
+    transform: translateY(-50%);
+    flex-direction: column;
+    gap: clamp(8px, 1.5vh, 16px);
+    margin-top: 0;
+    z-index: 10;
+  }
+  .stage.hard-level .action-btn { width: clamp(96px, 10vw, 150px); }
 }
 
 /* reduced motion */
