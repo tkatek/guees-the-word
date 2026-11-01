@@ -494,6 +494,169 @@ test('GAME', 'hint completing the word submits automatically', function () {
 });
 
 console.log('');
+console.log('=== AUDIO: sound-event dispatch ===');
+var AudioMod = require(path.join(ROOT, 'js', 'audio.js'));
+
+function makeAudio() {
+  var played = [];
+  var clock = { value: 0 };
+  var audio = new AudioMod.AudioManager({
+    now: function () { return clock.value; },
+    onPlay: function (name, opt) { played.push({ name: name, opt: opt }); }
+  });
+  audio.setSoundOn(true);
+  return { audio: audio, played: played, clock: clock };
+}
+function countPlayed(played, name) {
+  return played.filter(function (p) { return p.name === name; }).length;
+}
+
+test('AUDIO', 'module loads; AudioManager + pure timerCue helper exposed and Node-safe', function () {
+  ok(AudioMod.AudioManager && AudioMod.timerCue, 'exports');
+  var a = new AudioMod.AudioManager();   // no window/AudioContext: must not throw
+  ok(a.play('pop') === false, 'muted by default in Node (no harness set)');
+});
+
+test('AUDIO', 'timerCue: one warning at <=10s, restrained ticks exactly once at 3/2/1, none outside', function () {
+  var prior = { warned: false, lastTick: -1 };
+  eq(AudioMod.timerCue(11, prior), null, 'before 10s');
+  eq(AudioMod.timerCue(10, prior), 'timer-warning', 'at 10s');
+  prior.warned = true;
+  eq(AudioMod.timerCue(9.5, prior), null, 'mid countdown: silent');
+  eq(AudioMod.timerCue(4, prior), null, 'not yet final three');
+  eq(AudioMod.timerCue(3, prior), 'countdown-3', 'tick 3');
+  prior.lastTick = 3;
+  eq(AudioMod.timerCue(3, prior), null, 'no double tick for 3');
+  eq(AudioMod.timerCue(2, prior), 'countdown-2', 'tick 2');
+  prior.lastTick = 2;
+  eq(AudioMod.timerCue(1, prior), 'countdown-1', 'tick 1');
+  prior.lastTick = 1;
+  eq(AudioMod.timerCue(0, prior), null, 'nothing at zero');
+});
+
+test('AUDIO', 'engine events -> exactly one sound each for place/undo/clear/hint/correct', function () {
+  var h = makeAudio();
+  var game = newGame();
+  h.audio.wireEngine(game);
+  game.startLevel('L01'); // CAT
+  eq(countPlayed(h.played, 'swoosh'), 1, 'level start swoosh');
+
+  h.clock.value += 0.06; ok(game.selectLetter('C'), 'place C');
+  h.clock.value += 0.06; ok(game.selectLetter('A'), 'place A');
+  eq(countPlayed(h.played, 'pop'), 2, 'two pops for two placements');
+  // slot ladder used for pitch, not randomness
+  eq(h.played.filter(function (p) { return p.name === 'pop'; })[1].opt.step, 1, 'second pop step');
+
+  h.clock.value += 0.06; ok(game.undoRecent(), 'undo A');
+  eq(countPlayed(h.played, 'undo'), 1, 'one undo sound');
+
+  h.clock.value += 0.06; ok(game.useHint(), 'hint'); // reveals+locks next needed letter
+  eq(countPlayed(h.played, 'hint'), 1, 'one hint sound');
+
+  h.clock.value += 0.06; ok(game.selectLetter('T'), 'finish CAT'); // auto-submits
+  eq(countPlayed(h.played, 'correct'), 1, 'exactly one correct chime');
+  eq(countPlayed(h.played, 'wrong'), 0, 'no wrong sound on a correct word');
+});
+
+test('AUDIO', 'no-change actions dispatch nothing (used tile, empty undo/clear, spent hint, locked replay)', function () {
+  var h = makeAudio();
+  var game = newGame();
+  h.audio.wireEngine(game);
+  game.startLevel('L01');
+  var baseline = 0;
+
+  ok(!game.undoRecent(), 'undo on empty board');
+  eq(countPlayed(h.played, 'undo'), baseline, 'no undo sound without a change');
+  ok(!game.clearAll(), 'clear empty board');
+  eq(countPlayed(h.played, 'clear'), baseline, 'no clear sound without a change');
+
+  var usedId = game.tiles[0].id;
+  ok(game.selectLetter(game.tiles[0].letter), 'place first tile');
+  ok(!game.selectTile(usedId), 'same tile is used now');
+  eq(countPlayed(h.played, 'pop'), 1, 'no pop for a disabled tile');
+
+  ok(game.useHint(), 'hint #1'); h.clock.value += 0.06;
+  h.clock.value += 0.06; ok(!game.useHint(), 'hint already used this question');
+  eq(countPlayed(h.played, 'hint'), 1, 'no second hint sound');
+});
+
+test('AUDIO', 'wrong word -> one gentle oops; resolved without extra sounds', function () {
+  var h = makeAudio();
+  var game = newGame();
+  h.audio.wireEngine(game);
+  game.startLevel('L02'); // DUCK
+  h.clock.value += 0.06;
+  swapFill(game);              // auto-submits wrong
+  eq(countPlayed(h.played, 'wrong'), 1, 'exactly one oops per rejected answer');
+  eq(countPlayed(h.played, 'correct'), 0, 'no reveal sound on failure');
+  h.clock.value += 0.06;
+  game.resolveWrong();
+  eq(countPlayed(h.played, 'wrong'), 1, 'resolving plays nothing new');
+});
+
+test('AUDIO', 'rapid taps: human-speed placements all sound; true machine spam is gated', function () {
+  var h = makeAudio();
+  var game = newGame();
+  h.audio.wireEngine(game);
+  game.startLevel('L03'); // LION
+  ['L', 'I', 'O', 'N'].forEach(function (c) {
+    h.clock.value += 0.03;      // 30ms apart: a fast real player
+    ok(game.selectLetter(c), 'rapid place ' + c);
+  });
+  eq(countPlayed(h.played, 'pop'), 4, '4 rapid pops, none dropped');
+
+  // anti-spam gate: the same-name burst under 20ms yields exactly one sound
+  h.clock.value += 0.15;
+  ok(h.audio.play('pop', { step: 0 }), 'pop 1 after cooldown');
+  ok(!h.audio.play('pop', { step: 1 }), 'pop replayed 5ms later is gated');
+  h.clock.value += 0.03;
+  ok(h.audio.play('pop', { step: 1 }), 'pop plays again once the gate passes');
+});
+
+test('AUDIO', 'fanfare only on the 4th completion, once per event; star variants accepted', function () {
+  var h = makeAudio();
+  var game = newGame();
+  h.audio.wireEngine(game);
+  var t = { value: 1000000 };
+  game.startLevel('L01');
+  for (var i = 0; i < 3; i++) {                 // first 3 questions: no fanfare
+    t.value += 1000; game.tick(t.value);
+    game._answer.split('').forEach(function (ch) { h.clock.value += 0.06; game.selectLetter(ch); });
+    game.advanceAfterSuccess();
+    eq(countPlayed(h.played, 'fanfare'), 0, 'no fanfare at question ' + (i + 1));
+  }
+  t.value += 1000; game.tick(t.value);
+  game._answer.split('').forEach(function (ch) { h.clock.value += 0.06; game.selectLetter(ch); });
+  eq(countPlayed(h.played, 'correct'), 4, 'four correct chimes for four answers');
+  game.advanceAfterSuccess();                   // 4th solved -> level complete
+  eq(countPlayed(h.played, 'fanfare'), 1, 'fanfare exactly once');
+  eq(h.played.filter(function (p) { return p.name === 'fanfare'; })[0].opt.stars, 3, '3-star variant');
+});
+
+test('AUDIO', 'muting absolutely silences everything, including fanfare and countdown cues', function () {
+  var h = makeAudio();
+  var game = newGame();
+  h.audio.wireEngine(game);
+  game.startLevel('L01');
+  h.audio.setSoundOn(false);
+  var n = h.played.length;
+
+  swapFill(game);              // wrong answer while muted
+  game.startLevel('L01');      // retry still makes zero sound
+  ok(game.pause(), 'paused while muted');
+  game.resume();
+  game._loadQuestion(0);
+  h.audio.play('fanfare', { stars: 3 });
+  h.audio.onTimerSecond(10);
+  h.audio.onTimerSecond(3);
+  eq(h.played.length, n, 'not a single sound dispatched while muted');
+  h.audio.setSoundOn(true);
+  h.clock.value += 0.06;
+  ok(h.audio.play('click'), 'unmuted again');
+});
+
+console.log('');
+
 console.log('=== GAMEPLAY: timers, pause, visibility ===');
 
 test('GAME', 'L01-L03 have no timer; timed levels start at the exact duration', function () {
@@ -768,7 +931,7 @@ test('UI', 'approved art files referenced by the page exist on disk', function (
 test('UI', 'index.html wires every script relatively and leaks no answers', function () {
   var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   ['js/letters.js', 'js/storage.js', 'js/levels.js', 'js/game.js', 'js/asset-map.js',
-   'js/renderer.js', 'js/controls.js', 'js/main.js', 'css/style.css'].forEach(function (src) {
+   'js/renderer.js', 'js/controls.js', 'js/audio.js', 'js/main.js', 'css/style.css'].forEach(function (src) {
     ok(html.indexOf(src) !== -1, 'index.html does not reference ' + src);
   });
   questionsData.questions.forEach(function (q) {

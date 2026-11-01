@@ -223,7 +223,7 @@ body {
    Success crossfades the layers; shapes match because they are the same file. */
 .animal-mount {
   position: absolute;
-  left: 12%; right: 12%; top: 8%; bottom: 22%;   /* inside the green, above the chalk tray */
+  left: 12%; right: 12%; top: 8%; bottom: 30%;   /* inside the green, above the chalk tray + bottom gap */
   display: flex; align-items: center; justify-content: center;
 }
 .animal-mount img {
