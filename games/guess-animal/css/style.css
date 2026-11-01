@@ -218,12 +218,45 @@ body {
 }
 .board-art { width: 100%; height: 100%; display: block; object-fit: contain; user-select: none; }
 
-/* animal illustration mount — intentionally EMPTY until real art is integrated */
+/* animal illustration mount — one local image rendered twice:
+   a brightness(0) black layer over the identical full-color layer.
+   Success crossfades the layers; shapes match because they are the same file. */
 .animal-mount {
   position: absolute;
   left: 12%; right: 12%; top: 8%; bottom: 22%;   /* inside the green, above the chalk tray */
   display: flex; align-items: center; justify-content: center;
-  /* no background, no shapes, no placeholder content */
+}
+.animal-mount img {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;           /* aspect preserved, never cropped or stretched */
+  user-select: none;
+  pointer-events: none;
+}
+.animal-mount img.failed { display: none; }  /* missing file: empty board, never broken icon */
+.animal-black {
+  filter: brightness(0)
+          drop-shadow(0 0 2.5px rgba(214, 242, 255, .95))   /* pale-cyan outline for contrast */
+          drop-shadow(0 3px 6px rgba(10, 30, 20, .35));
+  transition: opacity .55s ease;
+  z-index: 2;
+}
+.animal-color {
+  opacity: 0;
+  transition: opacity .55s ease;
+  filter: drop-shadow(0 4px 8px rgba(10, 30, 20, .3));
+  z-index: 1;
+}
+.animal-mount.revealed .animal-black { opacity: 0; }
+.animal-mount.revealed .animal-color { opacity: 1; }
+.animal-mount.revealed { animation: animal-pop .6s cubic-bezier(.2, 1.4, .4, 1); }
+@keyframes animal-pop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.06); }
+  100% { transform: scale(1.02); }
 }
 
 /* speech bubble anchored inside the board */
@@ -493,11 +526,27 @@ body {
   .hud { gap: 6px; }
 }
 
-/* small phones: keep everything readable, wrap long answers */
-@media (max-width: 420px) {
-  .hud { flex-wrap: wrap; row-gap: 2px; }
+/* phones (portrait): match the phone reference —
+   HUD on two rows, wide board, 5-column letter bank */
+@media (orientation: portrait) and (max-width: 760px) {
+  .hud {
+    display: grid;
+    grid-template-columns: repeat(4, auto);
+    justify-content: center;
+    align-items: center;
+    column-gap: clamp(4px, 1.6vw, 10px);
+    row-gap: 4px;
+    height: auto;
+    min-height: calc(var(--hud-h) * .66);
+  }
+  #hud-score { grid-row: 2; grid-column: 2 / 3; }
+  #hud-timer, #hud-practice { grid-row: 2; grid-column: 3 / 4; }
   .title-text { font-size: clamp(16px, 5vw, 20px); }
-  .board-frame { width: min(94vw, 58vh * 2.02); }
+  /* spread the stack over the tall phone screen like the reference */
+  .stage { justify-content: space-evenly; overflow-y: auto; }
+  .board-frame { width: min(84vw, 62vh * 2.02); }
+  .slots { --slot-w: clamp(46px, 14vw, 66px); }
+  .tile { --tile-w: clamp(48px, 15vw, 68px); }
   .action-btn { width: clamp(88px, 28vw, 120px); }
   .actions { gap: 8px; }
 }
@@ -512,6 +561,25 @@ body {
   .board-frame { width: min(78vw, 52vh * 2.02); }
   .tile { --tile-w: clamp(48px, 8vw, 68px); }
   .slots { --slot-w: clamp(46px, 8.4vw, 76px); }
+}
+
+/* shorter landscape screens (1366×768-class laptops, landscape tablets):
+   the stack can exceed the stage height there and push the button row out of
+   view — scale board/slots/tiles by viewport height so everything stays visible */
+@media (orientation: landscape) and (max-height: 850px) {
+  .board-frame { width: min(78vw, 46vh * 2.02, 780px); }
+  .slots { --slot-w: clamp(40px, min(6vw, 6.6vh), 88px); }
+  .tile { --tile-w: clamp(36px, min(8.6vw, 8.4vh), 76px); }
+  .stage { gap: 6px; }
+}
+
+/* ultra-short landscape phones (≤450px tall): board tiny, bank on ONE row */
+@media (orientation: landscape) and (max-height: 450px) {
+  .bank { grid-template-columns: repeat(var(--cols-wide, 9), auto); }
+  .board-frame { width: min(78vw, 26vh * 2.02); }
+  .title-banner { margin-bottom: -14px; }
+  .actions { margin-top: calc(var(--gap) * .5); }
+  .stage { overflow-y: auto; }
 }
 
 /* reduced motion */

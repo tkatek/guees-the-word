@@ -102,8 +102,8 @@
     var e = this.el;
     e.hud.level.textContent = 'LEVEL ' + (state.levelIndex + 1);
     e.hud.question.textContent = 'Q ' + (state.questionIndex + 1) + '/' + state.questionCount;
-    e.hud.timer.classList.toggle('hidden', !!state.timer);
-    e.hud.practice.classList.toggle('hidden', !state.timer);
+    e.hud.timer.classList.toggle('hidden', !state.timer);
+    e.hud.practice.classList.toggle('hidden', !!state.timer);
     this._renderHearts(state.hearts, state.heartsMax);
     this._renderAnimalMount(state);
     this._renderSlots(state.slots, true);
@@ -230,7 +230,8 @@
       var count = tiles.length;
       // desktop: one centered row up to 9 tiles, two balanced rows above that
       var colsWide = count <= 9 ? count : Math.ceil(count / 2);
-      // phone: 3-4 column grid
+      // phone (reference layout): 3 equal columns x 3 rows for 9 tiles,
+      // balanced 4 columns for 10-16 tile banks
       var colsNarrow = Letters.gridColumns(count);
       box.style.setProperty('--cols-wide', String(colsWide));
       box.style.setProperty('--cols-narrow', String(colsNarrow));

@@ -7,6 +7,8 @@
    ============================================================ */
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+button { touch-action: manipulation; } /* no 300ms delay / double-tap zoom on phones */
+.app { overscroll-behavior: none; }     /* no pull-to-refresh while playing */
 
 :root {
   --navy: #1d3557;
@@ -128,7 +130,7 @@ body {
 /* ============================================================
    GAMEPLAY — target composition
    ============================================================ */
-.screen-game { z-index: 3; }
+.screen-game { z-index: 3; user-select: none; -webkit-user-select: none; }
 
 /* ---------- HUD: arcade badges across the top ---------- */
 .hud {
@@ -526,17 +528,38 @@ body {
   .hud { gap: 6px; }
 }
 
-/* small phones: keep everything readable, wrap long answers */
-@media (max-width: 420px) {
-  .hud { flex-wrap: wrap; row-gap: 2px; }
+/* phones (portrait): match the phone reference —
+   HUD on two rows, wide board, 3x3 letter bank (4 cols for 10-16 tiles) */
+@media (orientation: portrait) and (max-width: 760px) {
+  .hud {
+    display: grid;
+    grid-template-columns: repeat(4, auto);
+    justify-content: center;
+    align-items: center;
+    column-gap: clamp(4px, 1.6vw, 10px);
+    row-gap: 4px;
+    height: auto;
+    min-height: calc(var(--hud-h) * .66);
+  }
+  #hud-score { grid-row: 2; grid-column: 2 / 3; }
+  #hud-timer, #hud-practice { grid-row: 2; grid-column: 3 / 4; }
   .title-text { font-size: clamp(16px, 5vw, 20px); }
-  .board-frame { width: min(94vw, 58vh * 2.02); }
+  /* spread the stack over the tall phone screen like the reference */
+  .stage { justify-content: space-evenly; overflow-y: auto; }
+  .board-frame { width: min(88vw, 62vh * 2.02); }
+  .slots { --slot-w: clamp(46px, 14vw, 66px); }
+  .tile { --tile-w: clamp(48px, 15vw, 64px); }
+  /* reference tile rhythm: ~10-14px column gaps, ~8-12px row gaps */
+  .bank { gap: clamp(8px, 2.6vw, 12px) clamp(10px, 3vw, 14px); }
   .action-btn { width: clamp(88px, 28vw, 120px); }
   .actions { gap: 8px; }
 }
 @media (max-width: 360px) {
   .badge { padding: 4px 9px; font-size: 12px; }
-  .tile { --tile-w: clamp(42px, 12vw, 52px); }
+  /* shrink the board first; tiles never drop below the 44px touch minimum */
+  .board-frame { width: min(78vw, 58vh * 2.02); }
+  .tile { --tile-w: clamp(44px, 13vw, 52px); }
+  .bank { gap: 8px 10px; }
   .progress-holder { width: 92vw; }
 }
 
@@ -545,6 +568,25 @@ body {
   .board-frame { width: min(78vw, 52vh * 2.02); }
   .tile { --tile-w: clamp(48px, 8vw, 68px); }
   .slots { --slot-w: clamp(46px, 8.4vw, 76px); }
+}
+
+/* shorter landscape screens (1366×768-class laptops, landscape tablets):
+   the stack can exceed the stage height there and push the button row out of
+   view — scale board/slots/tiles by viewport height so everything stays visible */
+@media (orientation: landscape) and (max-height: 850px) {
+  .board-frame { width: min(78vw, 46vh * 2.02, 780px); }
+  .slots { --slot-w: clamp(40px, min(6vw, 6.6vh), 88px); }
+  .tile { --tile-w: clamp(36px, min(8.6vw, 8.4vh), 76px); }
+  .stage { gap: 6px; }
+}
+
+/* ultra-short landscape phones (≤450px tall): board tiny, bank on ONE row */
+@media (orientation: landscape) and (max-height: 450px) {
+  .bank { grid-template-columns: repeat(var(--cols-wide, 9), auto); }
+  .board-frame { width: min(78vw, 26vh * 2.02); }
+  .title-banner { margin-bottom: -14px; }
+  .actions { margin-top: calc(var(--gap) * .5); }
+  .stage { overflow-y: auto; }
 }
 
 /* reduced motion */

@@ -1,0 +1,282 @@
+{
+  "q001": {
+    "animalRef": "cat",
+    "source": "Iconify noto:cat",
+    "license": "Apache-2.0 (Google Noto Emoji)",
+    "url": "https://api.iconify.design/noto/cat.svg",
+    "author": "noto"
+  },
+  "q002": {
+    "animalRef": "dog",
+    "source": "Iconify noto:dog",
+    "license": "Apache-2.0 (Google Noto Emoji)",
+    "url": "https://api.iconify.design/noto/dog.svg",
+    "author": "noto"
+  },
+  "q003": {
+    "animalRef": "pig",
+    "source": "Iconify noto:pig",
+    "license": "Apache-2.0 (Google Noto Emoji)",
+    "url": "https://api.iconify.design/noto/pig.svg",
+    "author": "noto"
+  },
+  "q004": {
+    "animalRef": "cow",
+    "source": "Iconify noto:cow",
+    "license": "Apache-2.0 (Google Noto Emoji)",
+    "url": "https://api.iconify.design/noto/cow.svg",
+    "author": "noto"
+  },
+  "q005": {
+    "animalRef": "duck",
+    "source": "Iconify noto:duck",
+    "license": "Apache-2.0 (Google Noto Emoji)",
+    "url": "https://api.iconify.design/noto/duck.svg",
+    "author": "noto"
+  },
+  "q006": {
+    "animalRef": "(upgraded)",
+    "source": "Iconify icon-park:frog",
+    "license": "Apache-2.0 (IconPark)",
+    "url": "https://api.iconify.design/icon-park/frog.svg",
+    "author": "icon-park"
+  },
+  "q007": {
+    "animalRef": "fish",
+    "source": "Iconify noto:fish",
+    "license": "Apache-2.0 (Google Noto Emoji)",
+    "url": "https://api.iconify.design/noto/fish.svg",
+    "author": "noto"
+  },
+  "q008": {
+    "animalRef": "hen",
+    "source": "Iconify noto:chicken",
+    "license": "Apache-2.0 (Google Noto Emoji)",
+    "url": "https://api.iconify.design/noto/chicken.svg",
+    "author": "noto"
+  },
+  "q009": {
+    "animalRef": "(upgraded)",
+    "source": "Iconify game-icons:lion (gradient-shaded)",
+    "license": "CC-BY-3.0 (game-icons.net, Lorc/Delapouite)",
+    "url": "https://game-icons.net/lion.html",
+    "author": "Lorc / Delapouite (game-icons.net)"
+  },
+  "q010": {
+    "animalRef": "bear",
+    "source": "Iconify noto:bear",
+    "license": "Apache-2.0 (Google Noto Emoji)",
+    "url": "https://api.iconify.design/noto/bear.svg",
+    "author": "noto"
+  },
+  "q011": {
+    "animalRef": "goat",
+    "source": "Iconify noto:goat",
+    "license": "Apache-2.0 (Google Noto Emoji)",
+    "url": "https://api.iconify.design/noto/goat.svg",
+    "author": "noto"
+  },
+  "q012": {
+    "animalRef": "deer",
+    "source": "Iconify noto:deer",
+    "license": "Apache-2.0 (Google Noto Emoji)",
+    "url": "https://api.iconify.design/noto/deer.svg",
+    "author": "noto"
+  },
+  "q013": {
+    "animalRef": "horse",
+    "source": "Iconify noto:horse",
+    "license": "Apache-2.0 (Google Noto Emoji)",
+    "url": "https://api.iconify.design/noto/horse.svg",
+    "author": "noto"
+  },
+  "q014": {
+    "animalRef": "(upgraded)",
+    "source": "Wikimedia Commons: Sheep cartoon 04.svg",
+    "license": "CC0 (Wikimedia Commons)",
+    "url": "https://commons.wikimedia.org/wiki/File:Sheep_cartoon_04.svg",
+    "author": "LadyofHats"
+  },
+  "q015": {
+    "animalRef": "snake",
+    "source": "Iconify noto:snake",
+    "license": "Apache-2.0 (Google Noto Emoji)",
+    "url": "https://api.iconify.design/noto/snake.svg",
+    "author": "noto"
+  },
+  "q016": {
+    "animalRef": "mouse",
+    "source": "Iconify noto:mouse",
+    "license": "Apache-2.0 (Google Noto Emoji)",
+    "url": "https://api.iconify.design/noto/mouse.svg",
+    "author": "noto"
+  },
+  "q017": {
+    "animalRef": "tiger",
+    "source": "Iconify noto:tiger",
+    "license": "Apache-2.0 (Google Noto Emoji)",
+    "url": "https://api.iconify.design/noto/tiger.svg",
+    "author": "noto"
+  },
+  "q018": {
+    "animalRef": "zebra",
+    "source": "Iconify noto:zebra",
+    "license": "Apache-2.0 (Google Noto Emoji)",
+    "url": "https://api.iconify.design/noto/zebra.svg",
+    "author": "noto"
+  },
+  "q019": {
+    "animalRef": "panda",
+    "source": "Iconify icon-park:panda",
+    "license": "Apache-2.0 (IconPark)",
+    "url": "https://api.iconify.design/icon-park/panda.svg",
+    "author": "icon-park"
+  },
+  "q020": {
+    "animalRef": "(upgraded)",
+    "source": "Iconify game-icons:koala (gradient-shaded)",
+    "license": "CC-BY-3.0 (game-icons.net, Lorc/Delapouite)",
+    "url": "https://game-icons.net/koala.html",
+    "author": "Lorc / Delapouite (game-icons.net)"
+  },
+  "q021": {
+    "animalRef": "rabbit",
+    "source": "Iconify noto:rabbit",
+    "license": "Apache-2.0 (Google Noto Emoji)",
+    "url": "https://api.iconify.design/noto/rabbit.svg",
+    "author": "noto"
+  },
+  "q022": {
+    "animalRef": "monkey",
+    "source": "Iconify noto:monkey",
+    "license": "Apache-2.0 (Google Noto Emoji)",
+    "url": "https://api.iconify.design/noto/monkey.svg",
+    "author": "noto"
+  },
+  "q023": {
+    "animalRef": "turtle",
+    "source": "Iconify noto:turtle",
+    "license": "Apache-2.0 (Google Noto Emoji)",
+    "url": "https://api.iconify.design/noto/turtle.svg",
+    "author": "noto"
+  },
+  "q024": {
+    "animalRef": "camel",
+    "source": "Iconify noto:two-hump-camel",
+    "license": "Apache-2.0 (Google Noto Emoji)",
+    "url": "https://api.iconify.design/noto/two-hump-camel.svg",
+    "author": "noto"
+  },
+  "q025": {
+    "animalRef": "penguin",
+    "source": "Iconify noto:penguin",
+    "license": "Apache-2.0 (Google Noto Emoji)",
+    "url": "https://api.iconify.design/noto/penguin.svg",
+    "author": "noto"
+  },
+  "q026": {
+    "animalRef": "giraffe",
+    "source": "Iconify noto:giraffe",
+    "license": "Apache-2.0 (Google Noto Emoji)",
+    "url": "https://api.iconify.design/noto/giraffe.svg",
+    "author": "noto"
+  },
+  "q027": {
+    "animalRef": "dolphin",
+    "source": "Iconify noto:dolphin",
+    "license": "Apache-2.0 (Google Noto Emoji)",
+    "url": "https://api.iconify.design/noto/dolphin.svg",
+    "author": "noto"
+  },
+  "q028": {
+    "animalRef": "parrot",
+    "source": "Iconify noto:parrot",
+    "license": "Apache-2.0 (Google Noto Emoji)",
+    "url": "https://api.iconify.design/noto/parrot.svg",
+    "author": "noto"
+  },
+  "q029": {
+    "animalRef": "elephant",
+    "source": "Iconify noto:elephant",
+    "license": "Apache-2.0 (Google Noto Emoji)",
+    "url": "https://api.iconify.design/noto/elephant.svg",
+    "author": "noto"
+  },
+  "q030": {
+    "animalRef": "kangaroo",
+    "source": "Iconify noto:kangaroo",
+    "license": "Apache-2.0 (Google Noto Emoji)",
+    "url": "https://api.iconify.design/noto/kangaroo.svg",
+    "author": "noto"
+  },
+  "q031": {
+    "animalRef": "flamingo",
+    "source": "Iconify noto:flamingo",
+    "license": "Apache-2.0 (Google Noto Emoji)",
+    "url": "https://api.iconify.design/noto/flamingo.svg",
+    "author": "noto"
+  },
+  "q032": {
+    "animalRef": "octopus",
+    "source": "Iconify noto:octopus",
+    "license": "Apache-2.0 (Google Noto Emoji)",
+    "url": "https://api.iconify.design/noto/octopus.svg",
+    "author": "noto"
+  },
+  "q033": {
+    "animalRef": "rhinoceros",
+    "source": "Iconify noto:rhinoceros",
+    "license": "Apache-2.0 (Google Noto Emoji)",
+    "url": "https://api.iconify.design/noto/rhinoceros.svg",
+    "author": "noto"
+  },
+  "q035": {
+    "animalRef": "(upgraded)",
+    "source": "Iconify game-icons:porcupine (gradient-shaded)",
+    "license": "CC-BY-3.0 (game-icons.net, Lorc/Delapouite)",
+    "url": "https://game-icons.net/porcupine.html",
+    "author": "Lorc / Delapouite (game-icons.net)"
+  },
+  "q036": {
+    "animalRef": "(upgraded)",
+    "source": "Iconify game-icons:armadillo (gradient-shaded)",
+    "license": "CC-BY-3.0 (game-icons.net, Lorc/Delapouite)",
+    "url": "https://game-icons.net/armadillo.html",
+    "author": "Lorc / Delapouite (game-icons.net)"
+  },
+  "q037": {
+    "animalRef": "hippopotamus",
+    "source": "Iconify noto:hippopotamus",
+    "license": "Apache-2.0 (Google Noto Emoji)",
+    "url": "https://api.iconify.design/noto/hippopotamus.svg",
+    "author": "noto"
+  },
+  "q039": {
+    "animalRef": "(upgraded)",
+    "source": "Iconify game-icons:hummingbird (gradient-shaded)",
+    "license": "CC-BY-3.0 (game-icons.net, Lorc/Delapouite)",
+    "url": "https://game-icons.net/hummingbird.html",
+    "author": "Lorc / Delapouite (game-icons.net)"
+  },
+  "q040": {
+    "animalRef": "orangutan",
+    "source": "Iconify noto:orangutan",
+    "license": "Apache-2.0 (Google Noto Emoji)",
+    "url": "https://api.iconify.design/noto/orangutan.svg",
+    "author": "noto"
+  },
+  "q034": {
+    "animalRef": "(upgraded)",
+    "source": "Iconify game-icons:chameleon-glyph (gradient-shaded)",
+    "license": "CC-BY-3.0 (game-icons.net, Lorc/Delapouite)",
+    "url": "https://game-icons.net/chameleon-glyph.html",
+    "author": "Lorc / Delapouite (game-icons.net)"
+  },
+  "q038": {
+    "animalRef": "(upgraded)",
+    "source": "Iconify thesvg-color:woodpecker",
+    "license": "Free with attribution (thesvg.com) — see collection page",
+    "url": "https://api.iconify.design/thesvg-color/woodpecker.svg",
+    "author": "thesvg-color"
+  }
+}

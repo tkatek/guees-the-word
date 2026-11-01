@@ -447,6 +447,7 @@
       tiles: this.tiles.map(function (t) { return { id: t.id, letter: t.letter, used: t.used }; }),
       hint: this.question ? this.question.hint : null,
       silhouetteAsset: this.question ? this.question.silhouetteAsset : null,
+      questionId: this.question ? this.question.id : null,
       revealed: revealed
     };
   };

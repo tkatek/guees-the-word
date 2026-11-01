@@ -102,8 +102,8 @@
     var e = this.el;
     e.hud.level.textContent = 'LEVEL ' + (state.levelIndex + 1);
     e.hud.question.textContent = 'Q ' + (state.questionIndex + 1) + '/' + state.questionCount;
-    e.hud.timer.classList.toggle('hidden', !!state.timer);
-    e.hud.practice.classList.toggle('hidden', !state.timer);
+    e.hud.timer.classList.toggle('hidden', !state.timer);
+    e.hud.practice.classList.toggle('hidden', !!state.timer);
     this._renderHearts(state.hearts, state.heartsMax);
     this._renderAnimalMount(state);
     this._renderSlots(state.slots, true);
@@ -112,18 +112,70 @@
     this.hideBubble();
   };
 
-  // Neutral future-safe hook: marks which question the mount belongs to and
-  // keeps the area completely empty (no placeholder art, no network requests).
+  // Neutral, id-driven animal stage: two perfectly aligned copies of the SAME
+  // local illustration — a brightness(0) black layer on top of the full-color
+  // layer. Success crossfades them (CSS), so silhouette and color shapes match
+  // by construction. Files stay neutral (qNNN.svg); nothing about the animal
+  // leaks through markup. Missing files leave the board empty, never broken.
   Renderer.prototype._renderAnimalMount = function (state) {
     var mount = this.el.animalMount;
-    var qid = (state.silhouetteAsset || '').split('/').pop().replace('.svg', '');
-    mount.dataset.qid = qid;
+    var qid = state.questionId ||
+      (state.silhouetteAsset || '').split('/').pop().replace('.svg', '');
+    if (!qid) return;
     mount.setAttribute('aria-label', 'Mystery animal ' + (state.questionIndex + 1) + ' of ' + state.questionCount);
-    if (mount.firstChild) mount.innerHTML = '';
+
+    if (!this._animalStage) {
+      var color = document.createElement('img');
+      color.className = 'animal-color';
+      color.alt = '';
+      color.draggable = false;
+      var black = document.createElement('img');
+      black.className = 'animal-black';
+      black.alt = '';
+      black.draggable = false;
+      mount.appendChild(color);
+      mount.appendChild(black);
+      this._animalStage = { color: color, black: black };
+      var self = this;
+      [color, black].forEach(function (img) {
+        img.addEventListener('error', function () {
+          img.classList.add('failed');
+          mount.dataset.failed = 'true';
+        });
+        img.addEventListener('load', function () {
+          img.classList.remove('failed');
+          delete mount.dataset.failed;
+        });
+      });
+    }
+
+    // Only touch the DOM when the question actually changes.
+    if (this._animalQid !== qid) {
+      this._animalQid = qid;
+      mount.dataset.qid = qid;
+      var url = this.assets.animalUrl(qid);
+      if (this._animalStage.color.getAttribute('src') !== url) {
+        this._animalStage.color.src = url;
+        this._animalStage.black.src = url;
+      }
+      mount.classList.remove('revealed'); // every new question starts black
+    } else {
+      mount.classList.remove('revealed');
+    }
   };
 
-  // Kept for compatibility with main.js warm-up wiring; intentionally inert.
-  Renderer.prototype.preloadSilhouette = function () {};
+  // Warm the next animal's file so advancing questions never flashes empty.
+  Renderer.prototype.preloadSilhouette = function (questionAssetPath) {
+    var qid = (questionAssetPath || '').split('/').pop().replace('.svg', '');
+    if (!qid || !this.assets.animalUrl) return;
+    var img = new Image();
+    img.src = this.assets.animalUrl(qid);
+  };
+
+  // Called only from the engine's 'correct' event: black -> color crossfade.
+  Renderer.prototype.revealAnimal = function () {
+    this.el.animalMount.classList.add('revealed');
+  };
 
   Renderer.prototype._renderHearts = function (hearts, max) {
     var html = '';
@@ -178,8 +230,8 @@
       var count = tiles.length;
       // desktop: one centered row up to 9 tiles, two balanced rows above that
       var colsWide = count <= 9 ? count : Math.ceil(count / 2);
-      // phone: 3-4 column grid
-      var colsNarrow = Letters.gridColumns(count);
+      // phone (reference layout): 5 columns — 9-tile banks render 5+4
+      var colsNarrow = count <= 10 ? 5 : 4;
       box.style.setProperty('--cols-wide', String(colsWide));
       box.style.setProperty('--cols-narrow', String(colsNarrow));
       tiles.forEach(function (t, i) {
@@ -285,6 +337,7 @@
   };
 
   Renderer.prototype.revealSuccess = function (payload) {
+    this.revealAnimal(); // black silhouette -> full color, ~550ms crossfade
     this.rewardFloat(payload.reward);
     var zone = this.el.boardFrame;
     var sp = zone.querySelector('.sparkles');

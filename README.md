@@ -47,6 +47,8 @@ node tests/run-tests.js     # 47 tests: data validation, bank generation, full e
                             # behavior, storage, asset integrity, leak checks
 ```
 
+- **Animal illustrations**: 40 local SVGs in `assets/animals/q001.svg … q040.svg` (neutral names). Sourced from Google Noto Emoji (Apache-2.0), game-icons (CC-BY-3.0), Wikimedia Commons (CC0) and thesvg — full per-file attribution in `assets/animals/CREDITS.md` and `assets/animals/manifest.json`. Each renders twice (black via `brightness(0)` + color layer) and crossfades ~550ms on success. No external requests at runtime.
+
 ## Assets notes
 
 - `assets/art/bg-desktop.png` is the user's approved desktop photo, used **unmodified**
