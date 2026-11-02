@@ -577,9 +577,8 @@
       '<div class="m-buttons">' +
       (isLast
         ? '<button class="btn btn-green big" data-action="levels">🏆 Finish</button>'
-        : '<button class="btn btn-green big" data-action="next-level">▶ Next level</button>') +
+        : '<button class="btn btn-green big" data-action="levels">▶ Level map</button>') +
       '<button class="btn btn-blue" data-action="replay">↻ Replay</button>' +
-      '<button class="btn btn-yellow" data-action="levels">🗺 Map</button>' +
       '</div>'
     );
   };

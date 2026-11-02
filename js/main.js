@@ -225,16 +225,7 @@
 
   function onAction(action, data, target) {
     switch (action) {
-      // PLAY jumps straight into the player's next uncompleted level (never
-      // resets progress); if every level is already cleared, offer the map.
-      case 'play': {
-        audio.click();
-        renderer.closeModal();           // may be launched from the help dialog
-        var nextId = nextUncompletedLevelId();
-        if (nextId) startLevel(nextId);
-        else goLevels();
-        break;
-      }
+      case 'play': audio.click(); goLevels(); break;
       case 'levels': audio.click(); goLevels(); break;
       case 'home': audio.click(); goHome(); break;
       case 'help': audio.click(); renderer.showHelp(); break;
@@ -258,12 +249,6 @@
       case 'quit': game.resume(); goLevels(); break;
       case 'retry': startLevel(currentLevelId); break;
       case 'replay': startLevel(currentLevelId); break;
-      case 'next-level': {
-        var idx = game.getPublicState().levelIndex + 1;
-        if (idx < levels.length) startLevel(levels[idx].id);
-        else { audio.click(); goLevels(); }
-        break;
-      }
       // tiles/slots/undo/clear/hint/continue are silent here on purpose:
       // the engine only emits events for real state changes.
       case 'continue': game.advanceAfterSuccess(); break;

@@ -498,12 +498,8 @@ body {
 .level-card .lv-lock svg { width: 56%; height: 56%; display: block; }
 
 /* states */
-.level-card.current { filter: drop-shadow(0 3px 5px rgba(20, 40, 60, .3)) drop-shadow(0 0 9px rgba(255, 199, 84, .8)); }
-.level-card.current .lv-art { animation: card-glow 3s ease-in-out infinite; }
-@keyframes card-glow {
-  0%, 100% { filter: drop-shadow(0 0 4px rgba(255, 201, 89, .4)); }
-  50% { filter: drop-shadow(0 0 13px rgba(255, 201, 89, .9)); }
-}
+/* the next-uncompleted card keeps its green play pip; no glow halo around it */
+.level-card.current { filter: drop-shadow(0 3px 5px rgba(20, 40, 60, .3)); }
 @media (hover: hover) {
   .level-card:not(.locked):hover { transform: translateY(-3px) scale(1.015); z-index: 2; }
 }
