@@ -44,12 +44,14 @@
       progressTitle: $('progress-title'), progressMarkers: $('progress-markers'),
       overlay: $('modal-overlay'), modal: $('modal'), app: $('app'),
       boardZone: $('board-zone'),
-      soundState: $('sound-state')
+      soundState: $('sound-state'),
+      soundLevels: $('btn-sound-levels')
     };
     this._lastTiles = null;
     this._lastSlots = null;
     this._step = -1;
     this._bubbleTimer = null;
+    this._toastTimer = null;
   }
 
   Renderer.prototype.showScreen = function (name) {
@@ -64,10 +66,21 @@
 
   Renderer.prototype.setSound = function (on) {
     if (this.el.soundState) this.el.soundState.textContent = on ? 'On' : 'Off';
+    if (this.el.soundLevels) {
+      this.el.soundLevels.classList.toggle('is-off', !on);
+      this.el.soundLevels.setAttribute('aria-label', on ? 'Turn sound off' : 'Turn sound on');
+    }
   };
 
   /* ---------------- level select ---------------- */
 
+  var LOCK_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm-3 8V7a3 3 0 0 1 6 0v3H9z"/></svg>';
+  var PLAY_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 5.2v13.6L19.5 12 8 5.2z"/></svg>';
+
+  // All ten cards share ONE blank wooden-and-leaf artwork (assets/art/level-card-ui.png,
+  // the padding-cropped 768px build-time copy of level-card.png). Dynamic text is
+  // layered on top and aligned to the artwork's own plaque/cream geometry via CSS
+  // percentages (see tools/optimize-level-card.js for the measured geometry).
   Renderer.prototype.renderLevels = function (levels, store, currentLevelId) {
     var grid = this.el.levelGrid;
     grid.innerHTML = '';
@@ -75,26 +88,52 @@
       var unlocked = store.isUnlocked(lvl.id);
       var stars = store.getBestStars(lvl.id);
       var best = store.getBestScore(lvl.id);
+      var isCurrent = lvl.id === currentLevelId;
+      var count = (lvl.questionIds || []).length;
       var card = document.createElement('button');
       card.type = 'button';
-      card.className = 'level-card' + (unlocked ? '' : ' locked') + (lvl.id === currentLevelId ? ' current' : '');
-      card.setAttribute('role', 'listitem');
+      card.className = 'level-card' + (unlocked ? '' : ' locked') + (isCurrent ? ' current' : '');
       card.setAttribute('data-action', unlocked ? 'start-level' : 'locked-level');
       card.setAttribute('data-level', lvl.id);
       card.setAttribute('aria-label', unlocked
-        ? 'Level ' + (i + 1) + ' ' + lvl.name + ', ' + stars + ' of 3 stars' + (best ? ', best ' + best : '')
-        : 'Level ' + (i + 1) + ' locked');
+        ? 'Level ' + (i + 1) + ' ' + lvl.name + ', ' + count + ' animals, ' +
+          stars + ' of 3 stars' + (best ? ', best ' + best + ' points' : '') +
+          (isCurrent ? ', next level' : '')
+        : 'Level ' + (i + 1) + ' ' + lvl.name + ' locked. Complete Level ' + i + ' first.');
       var starsHtml = '';
       for (var s = 1; s <= 3; s++) {
-        starsHtml += s <= stars ? STAR_LIT : '<span class="off">' + STAR_OFF + '</span>';
+        starsHtml += '<span class="' + (s <= stars ? 'lit' : 'off') + '" aria-hidden="true">' + STAR_LIT + '</span>';
       }
       card.innerHTML =
-        '<div class="lv-num">Level ' + (i + 1) + '</div>' +
-        (unlocked ? '' : '<span class="lv-lock">🔒</span>') +
-        '<div class="lv-name">' + lvl.name + '</div>' +
-        (unlocked ? '<div class="lv-stars">' + starsHtml + '</div>' : '<div class="lv-stars">&nbsp;</div>');
+        '<img class="lv-art" src="assets/art/level-card-ui.png" alt="" draggable="false">' +
+        '<span class="lv-plaque">Level ' + (i + 1) + '</span>' +
+        '<span class="lv-name">' + lvl.name + '</span>' +
+        '<span class="lv-animals">' + count + ' animals</span>' +
+        '<span class="lv-stars">' + starsHtml + '</span>' +
+        (unlocked
+          ? (isCurrent ? '<span class="lv-play">' + PLAY_ICON + '</span>' : '')
+          : '<span class="lv-lock">' + LOCK_ICON + '</span>');
       grid.appendChild(card);
     });
+  };
+
+  // Small wooden toast pinned under the level-screen header (locked-card feedback).
+  Renderer.prototype.showLevelsToast = function (text) {
+    var screen = this.el.screens.levels;
+    if (!screen) return;
+    var toast = screen.querySelector('.levels-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.className = 'levels-toast';
+      screen.appendChild(toast);
+    }
+    toast.textContent = text;
+    toast.classList.remove('show');
+    void toast.offsetWidth; // restart the entrance animation
+    toast.classList.add('show');
+    if (this._toastTimer) { clearTimeout(this._toastTimer); this._toastTimer = null; }
+    var t = toast;
+    this._toastTimer = setTimeout(function () { t.classList.remove('show'); }, 1900);
   };
 
   /* ---------------- gameplay ---------------- */
@@ -102,9 +141,9 @@
   Renderer.prototype.renderQuestion = function (state) {
     var e = this.el;
     var wordLength = state.slots.length;
-    e.stage.classList.toggle('long-word', wordLength >= 9);
-    e.stage.classList.toggle('hard-level', state.levelIndex >= 5);
-    e.stage.classList.toggle('extra-long-word', wordLength >= 11);
+    // Two real layout modes, chosen from QUESTION CONTENT (not the level number):
+    // advanced = long answer or a big letter bank; CSS picks side-panel vs stack by viewport.
+    e.stage.classList.toggle('game--advanced', wordLength >= 8 || state.tiles.length >= 12);
     e.hud.level.textContent = 'LEVEL ' + (state.levelIndex + 1);
     e.hud.question.textContent = 'Q ' + (state.questionIndex + 1) + '/' + state.questionCount;
     e.hud.timer.classList.toggle('hidden', !state.timer);
@@ -115,6 +154,33 @@
     this._renderBank(state.tiles, true);
     this._renderActions(state);
     this.hideBubble();
+    this._scheduleFitCheck();
+  };
+
+  /*
+   * Real-space check for the centered stack: if the stage content is taller than
+   * the reserved stage box (would collide with the bottom progress board), add
+   * .game--tight so CSS compresses decorative gaps/sizes first. Runs after every
+   * question render and on resize (see main.js). Cheap and idempotent.
+   */
+  Renderer.prototype.checkLayoutFit = function () {
+    var stage = this.el.stage;
+    if (!stage || stage.classList.contains('hidden')) return false;
+    var tight = stage.scrollHeight > stage.clientHeight + 2;
+    stage.classList.toggle('game--tight', tight);
+    return tight;
+  };
+
+  // One measurement can race font swaps / image decode / late style settles,
+  // so re-check a few beats after the question paints.
+  Renderer.prototype._scheduleFitCheck = function () {
+    var self = this;
+    requestAnimationFrame(function () { self.checkLayoutFit(); });
+    setTimeout(function () { self.checkLayoutFit(); }, 300);
+    setTimeout(function () { self.checkLayoutFit(); }, 900);
+    if (document.fonts && document.fonts.ready && document.fonts.ready.then) {
+      document.fonts.ready.then(function () { self.checkLayoutFit(); });
+    }
   };
 
   // Neutral, id-driven animal stage: two perfectly aligned copies of the SAME
@@ -235,8 +301,9 @@
       var count = tiles.length;
       // desktop: one centered row up to 9 tiles, two balanced rows above that
       var colsWide = count <= 9 ? count : Math.ceil(count / 2);
-      // phone (reference layout): 5 columns — 9-tile banks render 5+4
-      var colsNarrow = count <= 10 ? 5 : 4;
+      // phone (reference layout): 3 equal columns x 3 rows for 9 tiles,
+      // balanced 4 columns for 10-16 tile banks
+      var colsNarrow = Letters.gridColumns(count);
       box.style.setProperty('--cols-wide', String(colsWide));
       box.style.setProperty('--cols-narrow', String(colsNarrow));
       tiles.forEach(function (t, i) {
@@ -260,9 +327,20 @@
   };
 
   Renderer.prototype._renderActions = function (state) {
-    this.el.btnHint.disabled = !state.hintAvailable;
-    this.el.btnHint.setAttribute('aria-label',
-      state.hintAvailable ? 'Hint: reveal one letter, costs 25 points' : 'Hint already used');
+    var btn = this.el.btnHint;
+    var allRevealed = !state.hintUnsolved;
+    // Disabled ONLY when nothing is left to reveal: an unaffordable hint stays
+    // tappable so the engine can answer with the friendly "Need 50 stars" message.
+    btn.disabled = allRevealed;
+    btn.classList.toggle('low-stars', !!state.hintUnaffordable);
+    btn.setAttribute('aria-label', allRevealed
+      ? 'Hint: all letters revealed'
+      : state.hintUnaffordable
+        ? 'Hint: reveal one letter — need 50 stars, you have ' + state.starBalance
+        : 'Hint: reveal one letter, costs 50 stars');
+    btn.title = allRevealed ? 'All letters revealed'
+      : state.hintUnaffordable ? 'Need 50 stars for a hint (you have ' + state.starBalance + ')'
+      : 'Reveal one letter — 50 ★';
   };
 
   // Full snapshot sync (safe to call after every engine event).
@@ -271,11 +349,43 @@
     this._renderBank(state.tiles);
     this._renderHearts(state.hearts, state.heartsMax);
     this._renderActions(state);
-    this.el.hud.score.querySelector('b').textContent = state.levelScore;
+    // The HUD star counter is the SPENDABLE wallet (hints pay from it);
+    // level score still appears in the success/results dialogs.
+    this.el.hud.score.setAttribute('aria-label', 'Star points: ' + state.starBalance + ' (hints cost 50)');
+    this.el.hud.score.querySelector('b').textContent = state.starBalance;
     if (state.timer) {
       this.el.hud.timerText.textContent = String(Math.ceil(state.timer.remainingMs / 1000));
       this.el.hud.timer.classList.toggle('low', state.timer.remainingMs <= 10500);
     }
+  };
+
+  // Small "-50 ★" pulse anchored to the HUD star badge after each paid hint.
+  Renderer.prototype.starFloat = function (text) {
+    var badge = this.el.hud.score;
+    var d = document.createElement('span');
+    d.className = 'star-float';
+    d.textContent = text;
+    badge.appendChild(d);
+    setTimeout(function () { d.remove(); }, 1200);
+  };
+
+  // One-time, non-intrusive welcome-credit note on the home screen.
+  Renderer.prototype.showStarterToast = function (text) {
+    var home = this.el.screens.home;
+    if (!home) return;
+    var t = home.querySelector('.starter-toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.className = 'starter-toast';
+      home.appendChild(t);
+    }
+    t.textContent = text;
+    t.classList.remove('show');
+    void t.offsetWidth;
+    t.classList.add('show');
+    if (this._starterTimer) { clearTimeout(this._starterTimer); this._starterTimer = null; }
+    var el = t;
+    this._starterTimer = setTimeout(function () { el.classList.remove('show'); }, 5200);
   };
 
   // step = solved count (0..4); markers show done / current / upcoming states.

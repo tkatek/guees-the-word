@@ -17,19 +17,19 @@
   'use strict';
 
   var HEARTS_DEFAULT = 3;
-  var HINT_LIMIT_DEFAULT = 1;      // one optional hint per question
   var SCORE_BASE = 100;
-  var HINT_PENALTY = 25;           // per hint, reward can never drop below 0
+  var HINT_COST = 50;             // spendable star points per accepted hint (wallet only)
+  var STARTER_BALANCE = 100;      // fallback balance for engine-only runs (no store attached)
   var NO_HINT_BONUS = 20;
-  var STREAK_STEP = 10;            // +10 per consecutive correct answer after the first
+  var STREAK_STEP = 10;           // +10 per consecutive correct answer after the first
   var STREAK_CAP = 40;
 
   function AnimalGame(opts) {
     opts = opts || {};
     this._lettersModule = opts.letters || Letters;
     this._now = opts.now || function () { return Date.now(); };
-    this._hintLimit = opts.hintLimit != null ? opts.hintLimit : HINT_LIMIT_DEFAULT;
     this._store = opts.store || null;
+    this._fallbackBalance = typeof opts.startBalance === 'number' ? opts.startBalance : STARTER_BALANCE;
 
     this._levels = (opts.levels && opts.levels.levels) || opts.levels || [];
     this._questionsById = {};
@@ -223,44 +223,103 @@
   };
 
   /*
-   * One optional hint per question: reveal the correct letter in the first available
-   * blank, consume its unused tile and lock that slot. If the last copy of the needed
-   * letter sits in a player-filled wrong slot, free that copy first so the layout
+   * Repeatable paid hint: each accepted press reveals ONE correct letter at the
+   * earliest unconfirmed position (blank or wrong), locks it, and deducts
+   * exactly HINT_COST (50) spendable star points from the persisted wallet.
+   * Repeats are allowed while unsolved positions remain and the balance covers
+   * the cost. A hint never costs a heart, never reshuffles the bank and never
+   * touches best scores / level stars. If the last copy of the needed letter
+   * sits in a player-filled wrong slot, that copy is freed first so the layout
    * always stays winnable.
    */
   AnimalGame.prototype.useHint = function () {
     if (this.phase !== 'solving' || this.paused || this.hidden) return false;
-    if (this.hintsUsed >= this._hintLimit) return false;
-    var idx = -1;
-    for (var i = 0; i < this.slots.length; i++) {
-      if (this.slots[i].letter === null) { idx = i; break; }
-    }
-    if (idx < 0) return false;
+    if (this._hintBusy) return false; // one charge/reveal/state-update per accepted action
 
+    var idx = this._nextHintTarget();
+    if (idx < 0) return false; // nothing left to reveal
+
+    var slot = this.slots[idx];
     var needed = this._answer[idx];
+
+    // Validate the full tile source BEFORE charging: an unused copy, or a copy
+    // reclaimable from a player-filled slot. If neither exists the hint is
+    // rejected with no state change, no sound and no charge.
     var tile = this._findUnusedTile(needed);
+    var reclaimIdx = -1;
     if (!tile) {
-      var bestOrder = -1, bestIdx = -1;
+      var bestOrder = -1;
       for (var s = 0; s < this.slots.length; s++) {
-        var slot = this.slots[s];
-        if (!slot.locked && slot.letter === needed && slot.order > bestOrder) { bestOrder = slot.order; bestIdx = s; }
+        var other = this.slots[s];
+        if (!other.locked && other.letter === needed && other.order > bestOrder) { bestOrder = other.order; reclaimIdx = s; }
       }
-      if (bestIdx < 0) return false; // impossible with a valid bank
-      this._freeSlot(this.slots[bestIdx]);
-      tile = this._findUnusedTile(needed);
-      if (!tile) return false;
+      if (reclaimIdx < 0) return false; // impossible with a valid bank
     }
 
-    tile.used = true;
-    var target = this.slots[idx];
-    target.letter = needed;
-    target.locked = true;
-    target.tileId = tile.id;
-    target.order = 0;
-    this.hintsUsed += 1;
-    this._emit('hint', { slotIndex: idx, letter: needed });
-    if (this._isBoardFull()) this._submit();
-    return true;
+    var spend = this._spendStars(HINT_COST);
+    if (!spend.ok) {
+      this._emit('hint-denied', {
+        cost: HINT_COST, balance: spend.balance,
+        message: 'Need 50 stars for a hint'
+      });
+      return false; // no reveal, no sound, no charge
+    }
+
+    this._hintBusy = true;
+    try {
+      if (slot.letter !== null) this._freeSlot(slot); // wrong player tile returns to the bank
+      if (reclaimIdx >= 0) this._freeSlot(this.slots[reclaimIdx]);
+      tile = this._findUnusedTile(needed);
+
+      tile.used = true;
+      slot.letter = needed;
+      slot.locked = true;
+      slot.tileId = tile.id;
+      slot.order = 0;
+      this.hintsUsed += 1;
+      this._emit('hint', {
+        slotIndex: idx, letter: needed, cost: HINT_COST, balance: spend.balance
+      });
+      if (this._isBoardFull()) this._submit();
+      return true;
+    } finally {
+      this._hintBusy = false;
+    }
+  };
+
+  // Earliest position that is blank or holds a wrong (unlocked) letter. Locked
+  // slots and correctly player-filled slots are never charged for again.
+  AnimalGame.prototype._nextHintTarget = function () {
+    for (var i = 0; i < this.slots.length; i++) {
+      var s = this.slots[i];
+      if (!s.locked && s.letter !== this._answer[i]) return i;
+    }
+    return -1;
+  };
+
+  // --- star wallet ------------------------------------------------------------
+  // The persisted ProgressStore wallet is authoritative whenever a store is
+  // attached (browser). The internal fallback exists only for store-less hosts
+  // (unit tests), mirroring the same rules: never negative, no refunds.
+
+  AnimalGame.prototype._getStarBalance = function () {
+    return this._store ? this._store.getStarBalance() : this._fallbackBalance;
+  };
+
+  AnimalGame.prototype._spendStars = function (amount) {
+    if (this._store) {
+      var res = this._store.spendStars(amount);
+      return res.ok ? { ok: true, balance: res.balance } : { ok: false, balance: res.balance };
+    }
+    if (this._fallbackBalance < amount) return { ok: false, balance: this._fallbackBalance };
+    this._fallbackBalance -= amount;
+    return { ok: true, balance: this._fallbackBalance };
+  };
+
+  AnimalGame.prototype._addStars = function (amount) {
+    if (this._store) return this._store.addStars(amount);
+    this._fallbackBalance += Math.max(0, amount | 0);
+    return this._fallbackBalance;
   };
 
   // --- submission ----------------------------------------------------------------
@@ -284,14 +343,16 @@
     this.phase = 'correct'; // locks input until the host calls advanceAfterSuccess()
     this.streak += 1;
     var noHint = this.hintsUsed === 0;
-    var base = Math.max(0, SCORE_BASE - HINT_PENALTY * this.hintsUsed);
+    var base = SCORE_BASE; // hints no longer reduce the reward; they cost wallet stars up front
     var bonus = noHint ? NO_HINT_BONUS : 0;
     var streakBonus = this.streak > 1 ? Math.min(STREAK_CAP, STREAK_STEP * (this.streak - 1)) : 0;
     var reward = base + bonus + streakBonus;
     this.levelScore += reward;
+    var balance = this._addStars(reward); // wallet earns the same points, exactly once per success
     this._emit('correct', {
       reward: reward, base: base, bonus: bonus, streakBonus: streakBonus,
       streak: this.streak, levelScore: this.levelScore,
+      starBalance: balance,
       animal: this.question.animal, fact: this.question.fact
     });
   };
@@ -421,6 +482,9 @@
     if ((this.phase === 'correct' || this.phase === 'level-complete') && this.question) {
       revealed = { animal: this.question.animal, fact: this.question.fact };
     }
+    var balance = this._getStarBalance();
+    var canAct = this.phase === 'solving' && !this.paused && !this.hidden;
+    var unsolved = canAct && this._nextHintTarget() >= 0;
     return {
       phase: this.phase,
       paused: this.paused,
@@ -436,8 +500,11 @@
       totalScore: this.totalScore,
       streak: this.streak,
       hintsUsed: this.hintsUsed,
-      hintLimit: this._hintLimit,
-      hintAvailable: this.hintsUsed < this._hintLimit && this.phase === 'solving',
+      hintCost: HINT_COST,
+      starBalance: balance,
+      hintUnsolved: unsolved,        // a blank or wrong unlocked position still exists (never the answer)
+      hintAvailable: unsolved && balance >= HINT_COST,
+      hintUnaffordable: unsolved && balance < HINT_COST,
       timer: this.timer ? {
         totalMs: this.timer.totalMs,
         remainingMs: this.timer.remainingMs,

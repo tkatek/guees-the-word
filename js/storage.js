@@ -1,6 +1,8 @@
 /*
  * storage.js — progress persistence for "Guess the Word: Animal Mystery".
  * Best stars / best score per level are never downgraded; unlocking is forward-only.
+ * The spendable star wallet (starBalance) is separate from best scores/trophies:
+ * spending hints never touches level ratings or unlock state.
  * Falls back to in-memory storage when localStorage is unavailable (private mode, tests).
  */
 (function (root, factory) {
@@ -15,6 +17,7 @@
   'use strict';
 
   var STORAGE_KEY = 'animal-mystery-progress-v1';
+  var STARTER_STARS = 100;        // one-time welcome credit for a brand-new wallet
 
   function MemoryStorage() {
     this._data = {};
@@ -75,6 +78,12 @@
     var data = defaultData();
     var stored = this._read();
     data.soundOn = stored.soundOn !== false;
+    // Wallet: absent only on legacy saves (pre-wallet) or brand-new profiles —
+    // resolved once by ensureWallet(), which also grants the one-time starter stars.
+    if (typeof stored.starBalance === 'number' && stored.starBalance >= 0) {
+      data.starBalance = Math.floor(stored.starBalance);
+    }
+    if (stored.starterStarsGranted === true) data.starterStarsGranted = true;
     Object.keys(stored.levels || {}).forEach(function (id) {
       var s = stored.levels[id];
       if (!s || typeof s !== 'object') return;
@@ -124,6 +133,48 @@
     return { bestStars: entry.bestStars, bestScore: entry.bestScore, improvedStars: improvedStars, improvedScore: improvedScore };
   };
 
+  /* ---------------- spendable star wallet ----------------
+   * Separate from bestStars/bestScore on purpose: the wallet pays for hints,
+   * trophies are never spendable. All writes persist immediately so a reload
+   * can never refund a spent hint or re-grant the starter credit. */
+
+  // Brings a (possibly legacy / brand-new) save up to the wallet schema exactly
+  // once: legacy players keep their progress and receive the same one-time
+  // starter credit (they never had a wallet to double-dip from).
+  ProgressStore.prototype.ensureWallet = function () {
+    var data = this.getData();
+    if (typeof data.starBalance === 'number') return false;
+    data.starBalance = data.starterStarsGranted === true ? 0 : STARTER_STARS;
+    data.starterStarsGranted = true;
+    this._write(data);
+    return true; // wallet was created this call (starter credit included)
+  };
+
+  ProgressStore.prototype.getStarBalance = function () {
+    this.ensureWallet();
+    return this.getData().starBalance;
+  };
+
+  ProgressStore.prototype.addStars = function (amount) {
+    this.ensureWallet();
+    var data = this.getData();
+    var add = Math.max(0, amount | 0);
+    data.starBalance = Math.min(999999, data.starBalance + add);
+    this._write(data);
+    return data.starBalance;
+  };
+
+  // Returns { ok, balance }: ok=false leaves the balance untouched (never negative).
+  ProgressStore.prototype.spendStars = function (amount) {
+    this.ensureWallet();
+    var data = this.getData();
+    var cost = Math.max(0, amount | 0);
+    if (data.starBalance < cost) return { ok: false, balance: data.starBalance };
+    data.starBalance -= cost;
+    this._write(data);
+    return { ok: true, balance: data.starBalance };
+  };
+
   ProgressStore.prototype.getSoundOn = function () {
     return this.getData().soundOn !== false;
   };
@@ -139,5 +190,5 @@
     try { this._storage.removeItem(STORAGE_KEY); } catch (e) { /* ignore */ }
   };
 
-  return { ProgressStore: ProgressStore, MemoryStorage: MemoryStorage, STORAGE_KEY: STORAGE_KEY };
+  return { ProgressStore: ProgressStore, MemoryStorage: MemoryStorage, STORAGE_KEY: STORAGE_KEY, STARTER_STARS: STARTER_STARS };
 });

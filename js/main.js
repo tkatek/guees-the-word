@@ -34,6 +34,12 @@
         now: function () { return performance.now(); }
       });
       audio = new AM.Audio.AudioManager();
+      // Wallet bootstrap: creates the spendable star wallet exactly once per
+      // save (brand-new AND legacy profiles get the one-time 100-star welcome
+      // credit; refreshes/retries never re-grant because it is persisted).
+      if (store.ensureWallet()) {
+        renderer.showStarterToast('🎁 100 starter stars added! Hints cost 50 ★ each.');
+      }
       // audio snapshot: levels unlocked before this session
       store.getData().levels && Object.keys(store.getData().levels).forEach(function (id) {
         if (store.getData().levels[id].unlocked) newlyUnlockedIds.push(id);
@@ -46,6 +52,20 @@
       document.addEventListener('visibilitychange', function () {
         game.setHidden(document.hidden);
       });
+      // Re-check the centered-stack fit when the viewport changes; never touches
+      // engine state, so input, shuffled tiles and the timer are unaffected.
+      var resizeTimer = null;
+      window.addEventListener('resize', function () {
+        if (resizeTimer) clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function () { renderer.checkLayoutFit(); }, 150);
+      });
+      // Development-only layout assertions: ?debug=layout (no cost in production —
+      // the extra script is only fetched when the parameter is present).
+      if (/[?&]debug=layout\b/.test(window.location.search)) {
+        var dbg = document.createElement('script');
+        dbg.src = 'js/debug-layout.js';
+        document.head.appendChild(dbg);
+      }
       renderer.setSound(store.getSoundOn());
       goHome();
       requestAnimationFrame(loop);
@@ -103,7 +123,12 @@
     game.on('clear', function () { renderer.syncGame(game.getPublicState()); });
     game.on('hint', function (info) {
       renderer.syncGame(game.getPublicState());
+      renderer.starFloat('-' + info.cost + ' ★');
       renderer.showBubble('Revealed ' + info.letter + '!', 'happy');
+    });
+    game.on('hint-denied', function (info) {
+      renderer.syncGame(game.getPublicState());
+      renderer.showBubble(info.message + ' — you have ' + info.balance + ' ★', 'sad');
     });
     game.on('correct', function (payload) {
       renderer.syncGame(game.getPublicState());
@@ -198,13 +223,13 @@
     controls.bindActions(guarded);
   }
 
-  function onAction(action, data) {
+  function onAction(action, data, target) {
     switch (action) {
       case 'play': audio.click(); goLevels(); break;
       case 'levels': audio.click(); goLevels(); break;
       case 'home': audio.click(); goHome(); break;
       case 'start-level': startLevel(data.levelId); break;    // level-start swoosh
-      case 'locked-level': audio.denied(); buzzLocked(); break;
+      case 'locked-level': audio.denied(); lockedNudge(data.levelId, target); break;
       case 'reload': location.reload(); break;
       case 'sound': {
         var on = !store.getSoundOn();
@@ -242,11 +267,16 @@
     }
   }
 
-  function buzzLocked() {
-    // friendly shake on a locked level card
-    var card = document.querySelector('.level-card.locked');
+  // Locked card tap: friendly explanation + a gentle shake of THAT card.
+  function lockedNudge(levelId, target) {
+    var idx = -1;
+    for (var i = 0; i < levels.length; i++) if (levels[i].id === levelId) { idx = i; break; }
+    renderer.showLevelsToast(idx > 0
+      ? 'Complete Level ' + idx + ' first!'
+      : 'This level is still locked.');
+    var card = target && target.closest ? target.closest('.level-card') : null;
     if (card) {
-      card.style.transition = 'transform .1s ease';
+      card.style.transition = 'transform .09s ease';
       var n = 0;
       var iv = setInterval(function () {
         card.style.transform = 'translateX(' + (n % 2 ? 4 : -4) + 'px)';

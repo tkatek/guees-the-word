@@ -103,29 +103,248 @@ body {
 .home-panel { text-align: center; }
 .home-banner { margin: 0 auto 6px; }
 .home-row { display: flex; justify-content: center; gap: 12px; margin-top: 14px; }
-
-/* ---------- level select ---------- */
-.levels-wrap { position: relative; z-index: 2; width: min(94vw, 860px); margin: 0 auto; height: 100%; display: flex; flex-direction: column; padding: 10px 0 18px; }
-.levels-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.levels-title { margin: 0; color: #fff; text-shadow: 0 2px 0 rgba(35, 56, 74, .45), 0 6px 14px rgba(35, 56, 74, .35); font-size: clamp(22px, 5vw, 34px); }
-.level-grid { margin-top: 12px; overflow-y: auto; display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 4px; align-content: start; flex: 1; }
-@media (min-width: 640px) { .level-grid { grid-template-columns: repeat(5, 1fr); } }
-.level-card {
-  position: relative; background: linear-gradient(180deg, #fffef9, #f3e9cf);
-  border: 3px solid #e2d3ac; border-radius: 18px; padding: 12px 8px 10px; text-align: center;
-  cursor: pointer; min-height: 96px; font-family: inherit;
-  box-shadow: 0 4px 0 rgba(35, 56, 74, .18); transition: transform .12s ease;
+/* one-time "100 starter stars" welcome note (non-intrusive pill, auto-hides) */
+.starter-toast {
+  position: absolute; left: 50%; bottom: clamp(14px, 6vh, 48px);
+  transform: translateX(-50%) translateY(8px);
+  background: #fff8e6; border: 3px solid #d8b97e; border-radius: 999px;
+  padding: 8px 18px; font-weight: bold; color: #6b4a17;
+  font-size: clamp(13px, 2.6vw, 16px);
+  box-shadow: 0 6px 16px rgba(30, 50, 66, .32);
+  opacity: 0; pointer-events: none; z-index: 8;
+  transition: opacity .25s ease, transform .25s ease; white-space: nowrap;
+  max-width: 92vw; overflow: hidden; text-overflow: ellipsis;
 }
-.level-card:hover { transform: translateY(-2px) rotate(-.5deg); }
-.level-card:focus-visible { outline: 4px dashed #fff; }
-.level-card .lv-num { font-size: 12px; color: #8b7a55; font-weight: bold; }
-.level-card .lv-name { font-size: clamp(13px, 2.4vw, 15px); font-weight: bold; color: #2c5f8a; margin: 2px 0 6px; }
-.level-card .lv-stars { font-size: 15px; letter-spacing: 2px; color: var(--gold); text-shadow: 0 1px 0 var(--gold-deep); min-height: 18px; }
-.level-card .lv-stars .off { color: #d8cdb2; text-shadow: none; }
-.level-card.locked { filter: saturate(.25) brightness(.94); cursor: not-allowed; }
-.level-card.locked .lv-name { color: #93a0ad; }
-.level-card .lv-lock { position: absolute; top: 8px; right: 10px; font-size: 18px; }
-.level-card.current { border-color: var(--gold); box-shadow: 0 0 0 4px rgba(248, 211, 78, .5); }
+.starter-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ---------- level select (wooden-and-leaf reference design) ---------- */
+.levels-wrap {
+  position: relative; z-index: 2;
+  width: min(94vw, 900px);
+  margin: 0 auto;
+  height: 100%;
+  display: flex; flex-direction: column;
+  padding: 0 max(4px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(4px, env(safe-area-inset-left));
+}
+.levels-top {
+  flex: none;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: max(10px, env(safe-area-inset-top)) 0 4px;
+}
+/* glossy blue corner buttons (Home / Sound) */
+.menu-btn {
+  width: clamp(46px, 12vw, 62px);
+  aspect-ratio: 1;
+  padding: 0; border: 3px solid #fff; border-radius: 28%;
+  cursor: pointer; font-family: inherit;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; background: linear-gradient(180deg, #7ec8f0 0%, #3d8fd1 60%, #2f7cb9 100%);
+  box-shadow:
+    inset 0 3px 4px rgba(255, 255, 255, .55),
+    inset 0 -5px 7px rgba(9, 52, 92, .35),
+    0 4px 0 rgba(23, 62, 102, .55),
+    0 8px 14px rgba(20, 40, 60, .3);
+  transition: transform .12s ease, filter .12s ease;
+}
+.menu-btn svg { width: 58%; height: 58%; display: block; filter: drop-shadow(0 2px 2px rgba(9, 40, 70, .45)); }
+.menu-btn:hover { filter: brightness(1.06); }
+.menu-btn:active { transform: translateY(3px); box-shadow: inset 0 3px 4px rgba(255,255,255,.5), inset 0 -3px 5px rgba(9,52,92,.3), 0 1px 0 rgba(23,62,102,.55); }
+.menu-btn:focus-visible { outline: 4px dashed #fff; outline-offset: 3px; }
+.menu-btn .snd-off { display: none; }
+.menu-btn.is-off .snd-on { display: none; }
+.menu-btn.is-off .snd-off { display: block; }
+
+/* hanging wooden "Choose a Level" banner */
+.levels-banner {
+  position: relative;
+  justify-self: center;
+  display: flex; align-items: center; justify-content: center;
+  gap: clamp(6px, 1.8vw, 14px);
+  width: min(66vw, 430px);
+  padding: clamp(10px, 2.2vh, 18px) clamp(12px, 2.6vw, 30px) clamp(12px, 2.4vh, 20px);
+  background: linear-gradient(180deg, #f9c06a 0%, #efa43f 38%, #e28f2b 66%, #d07d1e 100%);
+  border: 3px solid #7a4a12;
+  border-radius: 20px 20px 24px 24px / 24px 24px 30px 30px;
+  box-shadow:
+    inset 0 3px 0 rgba(255, 255, 255, .5),
+    inset 0 -7px 0 rgba(110, 52, 6, .38),
+    0 6px 0 rgba(101, 60, 17, .5),
+    0 12px 22px rgba(30, 50, 66, .35);
+}
+.banner-text {
+  margin: 0; white-space: nowrap;
+  font-size: clamp(15px, 4.7vw, 28px);
+  font-weight: bold; color: #fff; letter-spacing: .5px;
+  text-shadow: 0 2px 0 #7a3a06, -1px 0 0 #7a3a06, 1px 0 0 #7a3a06, 0 -1px 0 #7a3a06, 0 5px 9px rgba(70, 33, 2, .4);
+}
+.levels-banner .banner-paw { width: clamp(14px, 3vw, 24px); height: clamp(14px, 3vw, 24px); opacity: .95; }
+.levels-banner .banner-paw::before { background-color: #fff; }
+.rope {
+  position: absolute; bottom: calc(100% - 6px);
+  width: 13px; height: 500px; /* runs up past the viewport top; body clips it */
+  background: repeating-linear-gradient(180deg, #c99a58 0 13px, #a5763a 13px 18px);
+  border: 2.5px solid #6e4519; border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  box-shadow: 0 0 4px rgba(30, 20, 5, .25);
+}
+.rope-left { left: 15%; }
+.rope-right { right: 15%; }
+.leaf-cluster { position: absolute; width: 36px; height: 30px; }
+.leaf-tl { top: -13px; left: -11px; }
+.leaf-tr { top: -13px; right: -11px; }
+.leaf-cluster::before, .leaf-cluster::after {
+  content: ""; position: absolute;
+  width: 24px; height: 24px;
+  border-radius: 100% 0 100% 0;
+  background: linear-gradient(135deg, #8ed460, #4c9e3c);
+  border: 2px solid #2f7d2a;
+}
+.leaf-cluster::before { left: 0; top: 6px; transform: rotate(-42deg); }
+.leaf-cluster::after { right: 0; top: 0; width: 19px; height: 19px; transform: rotate(18deg); }
+.leaf-single {
+  position: absolute; bottom: -12px; left: 50%;
+  width: 20px; height: 20px;
+  border-radius: 100% 0 100% 0;
+  background: linear-gradient(135deg, #8ed460, #4c9e3c);
+  border: 2px solid #2f7d2a;
+  transform: translateX(-50%) rotate(65deg);
+}
+
+/* the card grid: 2 columns on phones, 3 on tablets, 5 on wide screens */
+.levels-scroll { flex: 1; min-height: 0; overflow-y: auto; display: flex; padding: 10px 2px 14px; }
+.level-grid {
+  margin: auto; /* safe vertical centering: collapses to 0 when the grid must scroll */
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(12px, 2.6vh, 24px) clamp(10px, 3.4vw, 22px);
+  width: 100%;
+}
+@media (min-width: 640px) { .level-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1024px) {
+  .levels-wrap { width: min(96vw, 1400px); }
+  .level-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (min-width: 1920px) { .level-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+
+/* one shared blank wooden-and-leaf artwork per card; text floats above it,
+   aligned to the plaque / cream geometry of the CROPPED art (level-card-ui.png,
+   1709x821 — transparent padding removed by tools/optimize-level-card.js) */
+.level-card {
+  position: relative;
+  aspect-ratio: 1709 / 821;
+  container-type: inline-size;
+  padding: 0; border: none; background: none; cursor: pointer;
+  font-family: inherit; color: var(--ink);
+  filter: drop-shadow(0 3px 5px rgba(20, 40, 60, .3));
+  transition: transform .14s ease, filter .2s ease;
+}
+/* Old phone browsers without aspect-ratio support would give the button zero
+   height (all children are absolutely positioned) and the level page would
+   look empty. padding-top reproduces the exact card box there (1 / 2.0816). */
+@supports not (aspect-ratio: 1) {
+  .level-card { padding-top: 48.04%; }
+}
+.level-card .lv-art {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: contain; pointer-events: none; user-select: none;
+}
+.level-card:focus-visible { outline: 3px dashed #fff; outline-offset: 4px; border-radius: 16px; }
+.level-card .lv-plaque {
+  position: absolute; left: 30.5%; right: 35%; top: 6.5%; height: 22.5%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: bold; color: #fff7df; white-space: nowrap;
+  font-size: 11px; /* pre-container-query fallback */
+  font-size: clamp(9px, 6.2cqw, 24px);
+  text-shadow: 0 1.5px 0 #6b3c10, 0 0 2px rgba(107, 60, 16, .9), 0 2px 4px rgba(60, 30, 2, .35);
+}
+.level-card .lv-name {
+  position: absolute; left: 9%; right: 9%; top: 32%; height: 27%;
+  display: flex; align-items: center; justify-content: center;
+  text-align: center; line-height: 1.02;
+  font-weight: bold; color: var(--navy);
+  font-size: 10px; /* fallback */
+  font-size: clamp(9px, 5.8cqw, 22px);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, .5);
+  overflow: visible;
+}
+.level-card .lv-animals {
+  position: absolute; left: 10%; right: 10%; top: 60%; height: 10.5%;
+  display: flex; align-items: center; justify-content: center;
+  color: #8b7a55; font-weight: bold; white-space: nowrap;
+  font-size: 7px; /* fallback */
+  font-size: clamp(7px, 3.7cqw, 14px);
+}
+.level-card .lv-stars {
+  position: absolute; left: 16%; right: 16%; top: 72.5%; height: 18.5%;
+  display: flex; align-items: center; justify-content: center;
+  gap: .14em; letter-spacing: .04em;
+  font-size: 12px; /* fallback */
+  font-size: clamp(11px, 7.6cqw, 30px);
+}
+.level-card .lv-stars .lit { color: #f6b73c; text-shadow: 0 1.5px 0 #c68a12, 0 0 3px rgba(255, 200, 90, .55); }
+.level-card .lv-stars .off { color: #a89d82; text-shadow: 0 1px 0 rgba(255, 255, 255, .6), 0 1px 2px rgba(120, 100, 60, .4); }
+/* green play pip on the next uncompleted level */
+.level-card .lv-play {
+  position: absolute; left: 10%; top: 71.5%;
+  width: 24px; height: 24px; /* pre-container-query fallback */
+  width: 14cqw; height: 14cqw; max-width: 40px; max-height: 40px; min-width: 18px; min-height: 18px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(180deg, #8ee08a, #3f9e4d);
+  border: 2px solid #fff;
+  color: #fff;
+  box-shadow: 0 2px 4px rgba(20, 40, 60, .35), inset 0 2px 2px rgba(255, 255, 255, .4);
+}
+.level-card .lv-play svg { width: 62%; height: 62%; display: block; margin-left: 8%; filter: drop-shadow(0 1px 1px rgba(10, 50, 20, .4)); }
+/* gray padlock on locked cards — kept clear of the title and stars */
+.level-card .lv-lock {
+  position: absolute; right: 8%; top: 36.5%;
+  width: 22px; height: 22px; /* pre-container-query fallback */
+  width: 13cqw; height: 13cqw; max-width: 36px; max-height: 36px; min-width: 16px; min-height: 16px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(180deg, #efece3, #d4cfc2);
+  border: 2px solid #a9a294;
+  color: #7d7468;
+  box-shadow: 0 2px 4px rgba(20, 40, 60, .25);
+}
+.level-card .lv-lock svg { width: 56%; height: 56%; display: block; }
+
+/* states */
+.level-card.current { filter: drop-shadow(0 3px 5px rgba(20, 40, 60, .3)) drop-shadow(0 0 9px rgba(255, 199, 84, .8)); }
+.level-card.current .lv-art { animation: card-glow 3s ease-in-out infinite; }
+@keyframes card-glow {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(255, 201, 89, .4)); }
+  50% { filter: drop-shadow(0 0 13px rgba(255, 201, 89, .9)); }
+}
+@media (hover: hover) {
+  .level-card:not(.locked):hover { transform: translateY(-3px) scale(1.015); z-index: 2; }
+}
+.level-card:not(.locked):active { transform: translateY(2px) scale(.985); }
+.level-card.locked { cursor: not-allowed; }
+.level-card.locked .lv-art { filter: saturate(.28) brightness(.97); }
+.level-card.locked .lv-name { color: #7d8b99; }
+.level-card.locked .lv-plaque { opacity: .82; }
+.level-card.locked .lv-animals { color: #9aa2ac; }
+
+/* friendly locked-level hint pinned under the header */
+.levels-toast {
+  position: absolute; left: 50%; top: clamp(78px, 13vh, 126px);
+  transform: translateX(-50%) translateY(-8px);
+  background: #fff8e6;
+  border: 3px solid #d8b97e; border-radius: 999px;
+  padding: 8px 18px;
+  font-weight: bold; color: #6b4a17;
+  font-size: clamp(13px, 3.4vw, 16px);
+  box-shadow: 0 6px 16px rgba(30, 50, 66, .32);
+  opacity: 0; pointer-events: none; z-index: 8;
+  transition: opacity .18s ease, transform .18s ease;
+  white-space: nowrap;
+}
+.levels-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 /* ============================================================
    GAMEPLAY — target composition
@@ -167,6 +386,21 @@ body {
 #hud-timer.low b { color: #ffb1a6; animation: pulse .6s ease infinite alternate; }
 @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.16); } }
 .star { color: var(--gold); text-shadow: 0 1px 0 var(--gold-deep); }
+#hud-score { position: relative; }
+/* "-50 ★" pulse under the star badge after each paid hint */
+.star-float {
+  position: absolute; left: 50%; top: calc(100% + 2px);
+  transform: translateX(-50%);
+  font-size: clamp(12px, 1.9vh, 17px); font-weight: bold;
+  color: #ffd75e; text-shadow: 0 2px 0 rgba(0, 0, 0, .4), 0 0 6px rgba(0, 0, 0, .25);
+  pointer-events: none; white-space: nowrap; z-index: 7;
+  animation: star-float-up 1.15s ease forwards;
+}
+@keyframes star-float-up {
+  from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+  25% { opacity: 1; }
+  to { opacity: 0; transform: translateX(-50%) translateY(-16px); }
+}
 
 /* ---------- center stack ---------- */
 .stage {
@@ -219,8 +453,6 @@ body {
   aspect-ratio: 1448 / 715;
   filter: drop-shadow(0 10px 18px rgba(20, 40, 60, .38));
 }
-.stage.long-word .board-frame { width: min(78vw, 42vh * 2.02, 780px); }
-.stage.extra-long-word .board-frame { width: min(70vw, 36vh * 2.02, 780px); }
 .board-art { width: 100%; height: 100%; display: block; object-fit: contain; user-select: none; }
 
 /* animal illustration mount — one local image rendered twice:
@@ -391,6 +623,17 @@ body {
 .action-btn:active { transform: translateY(3px) scale(.97); filter: drop-shadow(0 2px 3px rgba(20,40,60,.3)); }
 .action-btn:focus-visible { outline: 4px dashed #fff; outline-offset: 3px; border-radius: 18px; }
 .action-btn[disabled] { opacity: .42; filter: grayscale(.55); cursor: not-allowed; transform: none; }
+/* affordable-but-broke hint: tappable (engine explains), visually dimmed gold */
+.action-btn.low-stars img { filter: grayscale(.4) brightness(.92); }
+.action-btn.low-stars::after {
+  content: "50 ★"; position: absolute; top: -10%; right: -8%;
+  font-size: clamp(10px, 1.6vh, 14px); font-weight: bold; color: #fff;
+  background: linear-gradient(180deg, #ffb25e, #e07a1f);
+  border: 2px solid #fff; border-radius: 999px;
+  padding: 1px 7px; pointer-events: none;
+  box-shadow: 0 2px 5px rgba(20, 40, 60, .35);
+}
+.action-btn { position: relative; }
 
 /* ---------- four-step wooden progress bar ---------- */
 .progress-zone {
@@ -564,6 +807,8 @@ body {
   .tile { --tile-w: clamp(44px, 13vw, 52px); }
   .bank { gap: 8px 10px; }
   .progress-holder { width: 92vw; }
+  /* 12-letter answers wrap 6+6: keep both rows inside the narrow viewport */
+  .slots { --slot-w: clamp(34px, 11vw, 52px); gap: 5px; }
 }
 
 /* tablets: intermediate board + tiles */
@@ -577,7 +822,7 @@ body {
    the stack can exceed the stage height there and push the button row out of
    view — scale board/slots/tiles by viewport height so everything stays visible */
 @media (orientation: landscape) and (max-height: 850px) {
-  .board-frame { width: min(78vw, 46vh * 2.02, 780px); }
+  .board-frame { width: min(78vw, 44vh * 2.02, 780px); }
   .slots { --slot-w: clamp(40px, min(6vw, 6.6vh), 88px); }
   .tile { --tile-w: clamp(36px, min(8.6vw, 8.4vh), 76px); }
   .stage { gap: 6px; }
@@ -592,19 +837,83 @@ body {
   .stage { overflow-y: auto; }
 }
 
-@media (min-width: 961px) and (min-height: 560px) {
-  .stage.hard-level .actions {
-    position: absolute;
-    top: 50%;
-    right: clamp(8px, 3vw, 48px);
-    transform: translateY(-50%);
-    flex-direction: column;
-    gap: clamp(8px, 1.5vh, 16px);
-    margin-top: 0;
-    z-index: 10;
+/* ============================================================
+   ADAPTIVE GAMEPLAY LAYOUT — two modes selected by CONTENT + SPACE
+   (renderer toggles .game--advanced for answers >= 8 letters or
+   banks >= 12 tiles; .game--tight is added by a real overflow
+   measurement when the centered stack would not fit).
+   ============================================================ */
+
+/* Compact / short-word mode = the default centered stack above, untouched. */
+
+/* WIDE / ADVANCED MODE (desktop landscape with free width): the letter bank
+   and the three action buttons move into a right-side gameplay panel next to
+   the chalkboard; board + answer slots stay the primary focus on the left.
+   Explicit grid areas — no absolute positioning, nothing overlaps. */
+@media (min-width: 1024px) and (orientation: landscape) {
+  .stage.game--advanced {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(280px, 30vw, 440px);
+    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "board bank"
+      "slots  actions";
+    align-items: center;
+    column-gap: clamp(16px, 2vw, 28px);
+    row-gap: clamp(4px, 1vh, 12px);
   }
-  .stage.hard-level .action-btn { width: clamp(96px, 10vw, 150px); }
+  .stage.game--advanced .board-zone {
+    grid-area: board;
+    width: auto; min-width: 0; min-height: 0;
+    height: 100%;
+    justify-content: space-evenly;
+  }
+  .stage.game--advanced .title-banner {
+    margin: 0 auto 2px auto;
+    padding-top: clamp(4px, 1vh, 10px);
+    padding-bottom: clamp(5px, 1.2vh, 12px);
+  }
+  /* height-driven board: keeps the 1448/715 aspect, never crops/stretches */
+  .stage.game--advanced .board-frame { width: min(100%, 46vh * 2.02); }
+  .stage.game--advanced .slots { grid-area: slots; }
+  .stage.game--advanced .bank-wrap {
+    grid-area: bank;
+    min-width: 0; min-height: 0;
+    align-items: center;
+    padding: 2px 4px;
+    overflow-y: auto; /* bounded internal scroll only if a very short window demands it */
+  }
+  /* side panel bank: 4 columns x 3-4 rows for 12-16 tiles, big legible tiles */
+  .stage.game--advanced .bank {
+    grid-template-columns: repeat(var(--cols-narrow, 4), auto);
+    gap: clamp(6px, 1.4vh, 14px) clamp(8px, 1vw, 14px);
+  }
+  .stage.game--advanced .tile { --tile-w: clamp(44px, min(9vw, 8.6vh), 76px); }
+  .stage.game--advanced .actions {
+    grid-area: actions;
+    flex-direction: column;
+    margin-top: clamp(4px, 1.4vh, 14px);
+    gap: clamp(8px, 1.6vh, 16px);
+  }
+  .stage.game--advanced .action-btn { width: clamp(104px, 10vw, 156px); }
+  /* HUD/progress live outside the grid in their own reserved rows: untouched. */
 }
+
+/* TIGHT mode (measured overflow of the centered stack on ANY viewport):
+   shrink decorative gaps and board first, typography last. */
+.stage.game--tight { gap: 4px; }
+.stage.game--tight .title-banner {
+  margin: 0 auto 2px auto;
+  padding-top: clamp(3px, .8vh, 8px);
+  padding-bottom: clamp(4px, 1vh, 10px);
+}
+.stage.game--tight .title-text { font-size: clamp(16px, 2.8vh, 34px); }
+.stage.game--tight .board-frame { width: min(66vw, 40vh * 2.02); }
+.stage.game--tight .slots { --slot-w: clamp(34px, min(5.2vw, 6vh), 72px); }
+.stage.game--tight .tile { --tile-w: clamp(38px, min(7.4vw, 7.4vh), 66px); }
+.stage.game--tight .actions { margin-top: 4px; gap: clamp(8px, 2vw, 22px); }
+.stage.game--tight .action-btn { width: clamp(94px, 12vw, 160px); }
+.stage.game--tight .progress-holder { width: min(52vw, 40vh, 540px); }
 
 /* reduced motion */
 @media (prefers-reduced-motion: reduce) {

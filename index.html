@@ -6,7 +6,7 @@
 <title>Guess the Word — Animal Mystery</title>
 <meta name="description" content="A cheerful animal word-guessing game: 10 levels, 40 mystery animals.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%233e8948'/%3E%3Crect x='8' y='22' width='16' height='4' rx='2' fill='%23f7d774'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=3">
+<link rel="stylesheet" href="css/style.css?v=6">
 </head>
 <body>
 <div id="app" class="app" aria-live="polite">
@@ -48,12 +48,28 @@
   <!-- Level select -->
   <div id="screen-levels" class="screen screen-levels hidden">
     <div class="levels-wrap">
-      <div class="levels-head">
-        <button class="btn btn-blue icon" data-action="home" aria-label="Back to home">🏠</button>
-        <h2 class="levels-title">Choose a Level</h2>
-        <button class="btn btn-blue icon" data-action="sound" aria-label="Toggle sound">🔊</button>
+      <div class="levels-top">
+        <button class="menu-btn btn-home" data-action="home" aria-label="Home screen">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 2.6 1.8 11h3v10a1.2 1.2 0 0 0 1.2 1.2h4.4v-6.4h3.2v6.4h4.4A1.2 1.2 0 0 0 19.2 21V11h3L12 2.6z"/></svg>
+        </button>
+        <div class="levels-banner">
+          <span class="rope rope-left" aria-hidden="true"></span>
+          <span class="rope rope-right" aria-hidden="true"></span>
+          <span class="leaf-cluster leaf-tl" aria-hidden="true"></span>
+          <span class="leaf-cluster leaf-tr" aria-hidden="true"></span>
+          <span class="leaf-single leaf-b" aria-hidden="true"></span>
+          <span class="paw banner-paw left" aria-hidden="true"></span>
+          <h2 class="banner-text">Choose a Level</h2>
+          <span class="paw banner-paw right" aria-hidden="true"></span>
+        </div>
+        <button class="menu-btn btn-sound" data-action="sound" id="btn-sound-levels" aria-label="Turn sound off">
+          <svg class="snd-on" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M3 9v6h4l5 4.5v-15L7 9H3z"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12"/></svg>
+          <svg class="snd-off" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M3 9v6h4l5 4.5v-15L7 9H3z"/><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" d="m15.5 9.5 5 5m0-5-5 5"/></svg>
+        </button>
       </div>
-      <div id="level-grid" class="level-grid" role="list"></div>
+      <div class="levels-scroll">
+        <div id="level-grid" class="level-grid" aria-label="Level select"></div>
+      </div>
     </div>
   </div>
 
@@ -96,7 +112,7 @@
         <button class="action-btn" data-action="clear" id="btn-clear" aria-label="Clear all letters">
           <img src="assets/art/btn-clear.png" alt="" draggable="false">
         </button>
-        <button class="action-btn" data-action="hint" id="btn-hint" aria-label="Hint: reveal one letter, costs 25 points">
+        <button class="action-btn" data-action="hint" id="btn-hint" aria-label="Hint: reveal one letter, costs 50 stars">
           <img src="assets/art/btn-hint.png" alt="" draggable="false">
         </button>
       </div>

@@ -44,8 +44,10 @@ function questionById(id) {
   }
   throw new Error('no question ' + id);
 }
-function newGame(store, now) {
-  return new AnimalGame({ levels: levelsData, questions: questionsData, store: store, now: now });
+function newGame(store, now, extra) {
+  var opts = { levels: levelsData, questions: questionsData, store: store || null, now: now };
+  if (extra) Object.keys(extra).forEach(function (k) { opts[k] = extra[k]; });
+  return new AnimalGame(opts);
 }
 // Fill every slot with a guaranteed-wrong full word: the answer with its first two
 // (distinct) letters swapped — same letter multiset, so always placeable from the bank.
@@ -437,51 +439,61 @@ test('GAME', 'repeated letters are separate tiles (RABBIT with two B tiles)', fu
   eq(p.reward, 120, 'RABBIT solvable');
 });
 
-test('GAME', 'hint: reveals+locks first blank, consumes its tile, costs 25, once per question', function () {
-  var game = newGame();
+test('GAME', 'hint: reveals+locks first blank, consumes its tile, costs 50 wallet stars, repeatable', function () {
+  var store = new StorageMod.ProgressStore(new StorageMod.MemoryStorage());
+  store.addStars(200); // deterministic wallet: 100 starter + 200
+  var game = newGame(store);
   game.startLevel('L04'); // HORSE, 70s timer
+  eq(store.getStarBalance(), 300, 'wallet seeded');
+
   ok(game.useHint(), 'hint accepted');
   eq(game.slots[0].letter, 'H', 'slot 0 revealed');
   ok(game.slots[0].locked, 'slot 0 locked');
   eq(game.hintsUsed, 1, 'one hint used');
   var hTile = game.tiles.filter(function (tl) { return tl.letter === 'H' && tl.used; });
   eq(hTile.length, 1, 'H tile consumed');
-  ok(!game.useHint(), 'second hint refused');
+  eq(store.getStarBalance(), 250, 'exactly 50 deducted');
+
+  ok(game.useHint(), 'second hint accepted on the SAME question'); // no one-hint limit anymore
+  eq(game.slots[1].letter, 'O', 'slot 1 revealed');
+  eq(game.hintsUsed, 2, 'two hints used');
+  eq(store.getStarBalance(), 200, 'second 50 deducted (2 hints = 100 total)');
+
   ok(!game.undoSlot(0), 'locked slot cannot be undone');
-  ok(game.selectLetter('O'), 'fill O');
   ok(game.selectLetter('R'), 'fill R');
   ok(game.selectLetter('S'), 'fill S');
-  ok(game.clearAll(), 'clear keeps locked slot');
+  ok(game.clearAll(), 'clear keeps locked slots');
   ok(game.slots[0].locked && game.slots[0].letter === 'H', 'hint stays after clear');
-  ok(game.selectLetter('O'), 'refill O');
+  ok(game.slots[1].locked && game.slots[1].letter === 'O', 'second hint stays after clear');
   ok(game.selectLetter('R'), 'refill R');
   ok(game.selectLetter('S'), 'refill S');
   ok(game.selectLetter('E'), 'fill E -> board full -> auto-submit');
   eq(game.phase, 'correct', 'HORSE solved');
-  eq(game.levelScore, 75, '100 - 25 hint penalty, no +20 bonus');
+  // New policy: no reward penalty for hints; the 50-star wallet deduction is the only cost.
+  eq(game.levelScore, 100, 'full 100 base (no -25 penalty, no +20 no-hint bonus)');
 });
 
 test('GAME', 'hint rescues an otherwise stuck layout (every copy of a letter misplaced)', function () {
-  var game = newGame();
+  var game = newGame(null, null, { startBalance: 500 });
   game.startLevel('L06'); // RABBIT; its deterministic attempt-1 bank carries B x3 (2 answer + 1 distractor)
   eq(game.tiles.filter(function (tl) { return tl.letter === 'B'; }).length, 3, 'B x3 in bank');
-  ok(game.selectLetter('B'), 'B -> slot 0');
-  ok(game.selectLetter('B'), 'B -> slot 1');
-  ok(game.selectLetter('B'), 'B -> slot 2 (all B copies now used)');
-  ok(game.useHint(), 'hint at first blank: slot 3 needs B and no unused B tile exists');
-  eq(game.slots[3].letter, 'B', 'slot 3 revealed');
-  ok(game.slots[3].locked, 'slot 3 locked');
-  eq(game.slots[2].letter, null, 'most recent misplaced B freed from slot 2');
-  eq(game.slots[0].letter, 'B', 'earlier placement untouched');
-  eq(game.slots[1].letter, 'B', 'earlier placement untouched');
-  eq(game.tiles.filter(function (tl) { return tl.letter === 'B' && tl.used; }).length, 3,
-    'net B consumption unchanged (one freed, one locked in)');
-  // still winnable: undo the two wrong Bs, then spell the remaining letters
-  ok(game.undoRecent(), 'free slot 1');
-  ok(game.undoRecent(), 'free slot 0');
-  ['R', 'A', 'B', 'I', 'T'].forEach(function (c) { ok(game.selectLetter(c), 'fill ' + c); });
+  ok(game.selectLetter('B'), 'B -> slot 0 (wrong: slot 0 is R)');
+  ok(game.selectLetter('B'), 'B -> slot 1 (wrong: slot 1 is A)');
+  ok(game.selectLetter('B'), 'B -> slot 2 (correct by luck; all B copies now used)');
+  // New rule: the hint targets the EARLIEST wrong position (slot 0 = R), frees
+  // that misplaced B back to the bank and locks the correct letter in.
+  ok(game.useHint(), 'hint at earliest wrong slot');
+  eq(game.slots[0].letter, 'R', 'slot 0 corrected to R');
+  ok(game.slots[0].locked, 'slot 0 locked');
+  eq(game.slots[1].letter, 'B', 'slot 1 still holds the wrong B');
+  eq(game.slots[2].letter, 'B', 'slot 2 untouched');
+  eq(game.tiles.filter(function (tl) { return tl.letter === 'B' && tl.used; }).length, 2,
+    'one B freed from slot 0, one locked nowhere yet: net 2 used');
+  // still winnable: clear the remaining wrong B and spell the rest by hand
+  ok(game.clearAll(), 'clear frees the wrong/unlocked letters');
+  ['A', 'B', 'B', 'I', 'T'].forEach(function (c) { ok(game.selectLetter(c), 'fill ' + c); });
   eq(game.phase, 'correct', 'RABBIT solvable after hint rescue');
-  eq(game.levelScore, 75, '100 - 25 hint penalty applied');
+  eq(game.levelScore, 100, 'full base reward (no hint penalty in the score)');
 });
 
 test('GAME', 'hint completing the word submits automatically', function () {
@@ -491,6 +503,190 @@ test('GAME', 'hint completing the word submits automatically', function () {
   ok(game.useHint(), 'hint fills last slot K');
   eq(game.phase, 'correct', 'auto-submitted on hint completion');
   ok(game.slots[3].locked, 'hint slot locked');
+});
+
+console.log('');
+console.log('=== REPEATABLE PAID HINTS + STAR WALLET (new spec) ===');
+
+test('HINTS', 'repeated hints walk the word in order; 2 hints cost exactly 100', function () {
+  var store = new StorageMod.ProgressStore(new StorageMod.MemoryStorage());
+  store.addStars(150); // 100 starter + 150 = 250
+  var game = newGame(store);
+  game.startLevel('L08'); // ELEPHANT
+  ok(game.useHint(), 'hint 1');
+  eq(game.slots[0].letter, 'E', 'position 0 revealed');
+  eq(store.getStarBalance(), 200, '250 - 50');
+  ok(game.useHint(), 'hint 2');
+  eq(game.slots[1].letter, 'L', 'position 1 revealed');
+  eq(game.slots[2].letter, null, 'position 2 untouched');
+  eq(store.getStarBalance(), 150, '250 - 100 for two hints');
+  ok(game.slots[0].locked && game.slots[1].locked, 'both hint slots locked');
+  eq(game.hintsUsed, 2, 'counter tracks repeats on one question');
+});
+
+test('HINTS', 'insufficient funds: rejected with message, no deduction, no reveal, no sound', function () {
+  var store = new StorageMod.ProgressStore(new StorageMod.MemoryStorage());
+  store.addStars(0);
+  eq(store.getStarBalance(), 100, 'starter wallet');
+  store.spendStars(80); // 20 left
+  var game = newGame(store);
+  game.startLevel('L01'); // CAT
+  var denied = [];
+  var hints = [];
+  var offD = game.on('hint-denied', function (p) { denied.push(p); });
+  var offH = game.on('hint', function (p) { hints.push(p); });
+  ok(!game.useHint(), 'hint rejected');
+  eq(denied.length, 1, 'one denial event');
+  eq(denied[0].message, 'Need 50 stars for a hint', 'friendly message');
+  eq(denied[0].balance, 20, 'event reports the remaining balance');
+  eq(denied[0].cost, 50, 'event reports the cost');
+  eq(hints.length, 0, 'no accepted hint');
+  eq(store.getStarBalance(), 20, 'balance untouched');
+  eq(game.hintsUsed, 0, 'nothing revealed');
+  eq(game.slots[0].letter, null, 'board untouched');
+  ok(game.phase === 'solving' && game.hearts === 3, 'round stays playable, no heart lost');
+  offD(); offH();
+});
+
+test('HINTS', 'rapid double-tap: one charge, one reveal, one event per accepted action', function () {
+  var store = new StorageMod.ProgressStore(new StorageMod.MemoryStorage());
+  store.addStars(0);
+  store.spendStars(50); // exactly 50 left: one affordable hint
+  var game = newGame(store);
+  game.startLevel('L05'); // TIGER
+  var hints = 0, denied = 0;
+  game.on('hint', function () { hints += 1; });
+  game.on('hint-denied', function () { denied += 1; });
+  var first = game.useHint();
+  var second = game.useHint(); // immediate re-tap in the same tick
+  ok(first, 'first tap accepted');
+  ok(!second, 'second tap denied (no funds), not double-processed');
+  eq(hints, 1, 'exactly one hint event');
+  eq(denied, 1, 'exactly one denial');
+  eq(store.getStarBalance(), 0, 'charged exactly once');
+  eq(game.hintsUsed, 1, 'revealed exactly one letter');
+  eq(game.slots.filter(function (s) { return s.locked; }).length, 1, 'one locked slot');
+});
+
+test('HINTS', 'hint targets the earliest blank-or-wrong position, never a correct letter', function () {
+  var game = newGame(null, null, { startBalance: 500 });
+  game.startLevel('L04'); // HORSE
+  ok(game.selectLetter('H'), 'H correct in slot 0 (unlocked)');
+  ok(game.selectLetter('O'), 'O correct in slot 1');
+  ok(game.selectLetter('R'), 'R correct in slot 2');
+  // H,O,R are all correct so far -> hint must skip them and reveal slot 3 (S)
+  ok(game.useHint(), 'hint accepted');
+  eq(game.slots[3].letter, 'S', 'earliest UNSOLVED position revealed');
+  eq(game.slots[3].locked, true, 'locked');
+  ok(!game.slots[0].locked, 'correct player letters are not charged/locked');
+  eq(game._getStarBalance(), 450, 'only one 50 charge');
+});
+
+test('HINTS', 'wrong letter at the target: returned to the bank, replaced by the correct letter', function () {
+  var game = newGame(null, null, { startBalance: 500 });
+  game.startLevel('L03'); // LION
+  ok(game.selectLetter('O'), 'place O in slot 0 (WRONG position)');
+  eq(game.slots[0].letter, 'O', 'slot 0 holds wrong O');
+  var oTileId = game.slots[0].tileId;
+  ok(game.useHint(), 'hint reveals slot 0 = L');
+  eq(game.slots[0].letter, 'L', 'wrong letter replaced');
+  ok(game.slots[0].locked, 'slot 0 locked');
+  var freedTile = null;
+  game.tiles.forEach(function (t) { if (t.id === oTileId) freedTile = t; });
+  ok(freedTile && !freedTile.used, 'the wrong O tile is back in the bank');
+  ok(game.selectLetter('O'), 'that freed O is clickable again');
+  eq(game.slots[1].letter, 'O', 'it fills the CORRECT slot 1');
+  game.clearAll();
+  ok(game.slots[0].locked && game.slots[0].letter === 'L', 'hint lock survives Clear');
+});
+
+test('HINTS', 'HIPPOPOTAMUS: hint-to-completion keeps the tile multiset exact (P x3, O x2)', function () {
+  var store = new StorageMod.ProgressStore(new StorageMod.MemoryStorage());
+  store.addStars(1000);
+  var game = newGame(store);
+  game.startLevel('L10'); // HIPPOPOTAMUS (12) bank 16
+  var hintEvents = 0, correctEvents = 0;
+  game.on('hint', function () { hintEvents += 1; });
+  game.on('correct', function () { correctEvents += 1; });
+  var guard = 0;
+  while (game.phase === 'solving' && guard++ < 20) {
+    ok(game.useHint(), 'hint ' + guard + ' accepted');
+  }
+  eq(game.phase, 'correct', 'board completed by hints alone');
+  eq(hintEvents, 12, 'exactly 12 hints, one letter each');
+  eq(correctEvents, 1, 'success/celebration fired exactly once');
+  eq(game.hintsUsed, 12, '12 hints counted');
+  var word = game.slots.map(function (s) { return s.letter; }).join('');
+  eq(word, 'HIPPOPOTAMUS', 'all slots spell the answer');
+  ok(game.slots.every(function (s) { return s.locked; }), 'every slot locked');
+  var pUsed = game.tiles.filter(function (t) { return t.letter === 'P' && t.used; });
+  eq(pUsed.length, 3, 'exactly the 3 P copies consumed');
+  var pIds = {}; pUsed.forEach(function (t) { pIds[t.id] = 1; });
+  eq(Object.keys(pIds).length, 3, 'P copies are DISTINCT tile ids');
+  eq(game.tiles.filter(function (t) { return t.letter === 'O' && t.used; }).length, 2, 'O x2 consumed');
+  eq(game.tiles.filter(function (t) { return t.used; }).length, 12, 'exactly answer-length tiles used — no duplicates created');
+  // 1100 - 12*50 spent on hints + 100 earned by the 12th-letter success itself
+  eq(store.getStarBalance(), 100 + 1000 - 600 + 100, 'wallet: 1100 - 600 hints + 100 success reward');
+  ok(!game.useHint(), 'hint on a solved board: nothing left to reveal');
+});
+
+test('HINTS', 'hint count resets on a NEW question; survives same-question retry (timeout)', function () {
+  var store = new StorageMod.ProgressStore(new StorageMod.MemoryStorage());
+  store.addStars(400);
+  var t = { value: 900000 };
+  var game = newGame(store, function () { return t.value; });
+  game.startLevel('L04'); // HORSE, 70s timer
+  ok(game.useHint(), 'hint on q1');
+  eq(game.hintsUsed, 1, 'used once');
+  // solve q1, advance to q2
+  'ORSE'.split('').forEach(function (c) { ok(game.selectLetter(c), 'finish ' + c); });
+  eq(game.phase, 'correct', 'q1 solved');
+  game.advanceAfterSuccess();
+  eq(game.hintsUsed, 0, 'hint count reset on the new question');
+  ok(game.slots.every(function (s) { return !s.locked; }), 'no locks carried over');
+
+  // timeout retry on q2 keeps the hint slot locked and the count
+  ok(game.useHint(), 'hint on q2');
+  game.tick(t.value);
+  t.value += 80000; game.tick(t.value); // force timeout
+  eq(game.phase, 'solving', 'same question restarted');
+  eq(game.hintsUsed, 1, 'hint count preserved across same-question retry');
+  ok(game.slots[0].locked, 'hinted slot still locked after timeout restart');
+  // 500 seeded - 50 (q1 hint) + 100 (q1 success reward) - 50 (q2 hint); retry refunds nothing
+  eq(store.getStarBalance(), 100 + 400 - 50 + 100 - 50, 'no refund for the retry');
+});
+
+test('HINTS', 'correct answers earn wallet stars exactly once per success', function () {
+  var store = new StorageMod.ProgressStore(new StorageMod.MemoryStorage());
+  var game = newGame(store);
+  game.startLevel('L01'); // CAT
+  eq(store.getStarBalance(), 100, 'starter only');
+  var s = solveCurrent(game); // reward 120 (100 + 20 no-hint, streak 1)
+  eq(s.reward, 120, 'reward unchanged');
+  eq(s.starBalance, 220, 'wallet credited in the same event');
+  eq(store.getStarBalance(), 220, 'wallet persisted the reward');
+  game.advanceAfterSuccess();
+  solveCurrent(game); // DOG, streak 2 -> 130
+  eq(store.getStarBalance(), 350, '220 + 130');
+});
+
+test('HINTS', 'public state exposes wallet + hint flags without leaking the answer', function () {
+  var store = new StorageMod.ProgressStore(new StorageMod.MemoryStorage());
+  store.spendStars(80); // 20 left
+  var game = newGame(store);
+  game.startLevel('L07'); // PENGUIN
+  var s = game.getPublicState();
+  eq(s.starBalance, 20, 'balance exposed');
+  eq(s.hintCost, 50, 'cost exposed');
+  eq(s.hintUnsolved, true, 'unsolved positions exist');
+  eq(s.hintAvailable, false, 'cannot pay');
+  eq(s.hintUnaffordable, true, 'flagged unaffordable');
+  ok(!('hintLimit' in s), 'old one-hint limit removed from the state');
+  game.pause();
+  eq(game.getPublicState().hintUnsolved, false, 'no hints while paused');
+  game.resume();
+  var json = JSON.stringify(game.getPublicState());
+  ok(json.indexOf('PENGUIN') === -1, 'still no answer in the public state');
 });
 
 console.log('');
@@ -558,9 +754,9 @@ test('AUDIO', 'engine events -> exactly one sound each for place/undo/clear/hint
   eq(countPlayed(h.played, 'wrong'), 0, 'no wrong sound on a correct word');
 });
 
-test('AUDIO', 'no-change actions dispatch nothing (used tile, empty undo/clear, spent hint, locked replay)', function () {
+test('AUDIO', 'no-change actions dispatch nothing (used tile, empty undo/clear, unaffordable hint)', function () {
   var h = makeAudio();
-  var game = newGame();
+  var game = newGame(null, null, { startBalance: 50 });
   h.audio.wireEngine(game);
   game.startLevel('L01');
   var baseline = 0;
@@ -575,9 +771,10 @@ test('AUDIO', 'no-change actions dispatch nothing (used tile, empty undo/clear, 
   ok(!game.selectTile(usedId), 'same tile is used now');
   eq(countPlayed(h.played, 'pop'), 1, 'no pop for a disabled tile');
 
-  ok(game.useHint(), 'hint #1'); h.clock.value += 0.06;
-  h.clock.value += 0.06; ok(!game.useHint(), 'hint already used this question');
-  eq(countPlayed(h.played, 'hint'), 1, 'no second hint sound');
+  ok(game.useHint(), 'hint #1 drains the wallet to 0'); h.clock.value += 0.06;
+  eq(countPlayed(h.played, 'hint'), 1, 'one hint sound');
+  h.clock.value += 0.06; ok(!game.useHint(), 'hint #2 denied: balance 0 < 50');
+  eq(countPlayed(h.played, 'hint'), 1, 'no sound for a rejected (unaffordable) hint');
 });
 
 test('AUDIO', 'wrong word -> one gentle oops; resolved without extra sounds', function () {
@@ -875,6 +1072,85 @@ test('STORAGE', 'corrupted saved data falls back to safe defaults', function () 
 });
 
 console.log('');
+console.log('=== STORAGE: star wallet (new) ===');
+
+test('WALLET', 'new profile gets the 100-star starter credit exactly once; refresh never re-grants', function () {
+  var mem = new StorageMod.MemoryStorage();
+  var a = new StorageMod.ProgressStore(mem);
+  ok(a.ensureWallet(), 'first call creates the wallet');
+  eq(a.getStarBalance(), StorageMod.STARTER_STARS, '100 starter stars');
+  ok(!a.ensureWallet(), 'second call is a no-op');
+  eq(a.getStarBalance(), 100, 'still 100 — no double grant');
+  var b = new StorageMod.ProgressStore(mem); // fresh instance, same storage = "reload"
+  eq(b.getStarBalance(), 100, 'reload: balance persisted, no re-grant');
+  ok(!b.ensureWallet(), 'reload: no second welcome credit');
+});
+
+test('WALLET', 'legacy save migrates safely: keeps progress, one-time credit, bests untouched', function () {
+  var mem = new StorageMod.MemoryStorage();
+  // A pre-wallet save: real progress, no starBalance/starterStarsGranted fields.
+  mem.setItem(StorageMod.STORAGE_KEY, JSON.stringify({
+    version: 1, soundOn: true,
+    levels: { L01: { unlocked: true, bestStars: 3, bestScore: 540 }, L02: { unlocked: true, bestStars: 2, bestScore: 410 } }
+  }));
+  var store = new StorageMod.ProgressStore(mem);
+  ok(store.ensureWallet(), 'legacy save upgraded to the wallet schema');
+  eq(store.getStarBalance(), 100, 'legacy player receives the same one-time starter credit');
+  eq(store.getBestStars('L01'), 3, 'best stars preserved');
+  eq(store.getBestScore('L01'), 540, 'best score preserved');
+  ok(store.isUnlocked('L02'), 'unlock preserved');
+  ok(!store.ensureWallet(), 'no double award on the next call');
+  var reloaded = new StorageMod.ProgressStore(mem);
+  eq(reloaded.getStarBalance(), 100, 'migration persisted');
+  eq(reloaded.getBestStars('L02'), 2, 'progress still intact after migration');
+});
+
+test('WALLET', 'spend/add: exact costs, insufficient funds rejected, never negative', function () {
+  var store = new StorageMod.ProgressStore(new StorageMod.MemoryStorage());
+  store.addStars(30); // 130
+  eq(store.getStarBalance(), 130, '130');
+  var s1 = store.spendStars(50);
+  ok(s1.ok && s1.balance === 80, 'first hint affordable');
+  var s2 = store.spendStars(50);
+  ok(s2.ok && s2.balance === 30, 'second hint affordable');
+  var s3 = store.spendStars(50);
+  ok(!s3.ok && s3.balance === 30, 'third rejected: 30 < 50, balance untouched');
+  eq(store.getStarBalance(), 30, 'never negative, never silently changed');
+  store.addStars(20);
+  eq(store.getStarBalance(), 50, 'earn tops the wallet back up');
+  ok(store.spendStars(50).ok, 'affordable again');
+  eq(store.getStarBalance(), 0, 'exact zero, not negative');
+  ok(!store.spendStars(1).ok, 'cannot go below zero');
+});
+
+test('WALLET', 'spending hints never downgrades stars, best scores or unlocks', function () {
+  var store = new StorageMod.ProgressStore(new StorageMod.MemoryStorage());
+  store.recordLevelResult('L01', 3, 540);
+  store.unlockLevel('L02');
+  store.spendStars(100); // drain the whole wallet
+  eq(store.getBestStars('L01'), 3, '3-star trophy intact');
+  eq(store.getBestScore('L01'), 540, 'best score intact');
+  ok(store.isUnlocked('L02'), 'unlock intact');
+  eq(store.getStarBalance(), 0, 'wallet empty but the game keeps working');
+});
+
+test('WALLET', 'full round: hints spent, reload mid-level, no refund exploit', function () {
+  var mem = new StorageMod.MemoryStorage();
+  var store = new StorageMod.ProgressStore(mem);
+  store.addStars(100); // 200 total
+  var game = newGame(store);
+  game.startLevel('L05'); // TIGER
+  ok(game.useHint(), 'spend 50');
+  eq(store.getStarBalance(), 150, '150 after one hint');
+  // simulate F5: brand-new store + engine over the same persisted save
+  var store2 = new StorageMod.ProgressStore(mem);
+  eq(store2.getStarBalance(), 150, 'spent stars do NOT come back on reload');
+  var game2 = newGame(store2);
+  game2.startLevel('L05'); // retry the same level
+  eq(store2.getStarBalance(), 150, 'restarting the level refunds nothing');
+});
+
+console.log('');
 console.log('=== ASSETS (informational, next phase) ===');
 var missing = 0;
 questionsData.questions.forEach(function (q) {
@@ -982,6 +1258,54 @@ test('ANIMALS', 'one image in two states: black layer via brightness(0), color c
   ok(js.indexOf('revealAnimal') !== -1 && js.indexOf('revealSuccess') !== -1, 'reveal wired to success');
   var engine = fs.readFileSync(path.join(ROOT, 'js', 'game.js'), 'utf8');
   ok(engine.indexOf('questionId: this.question ? this.question.id : null') !== -1, 'public state exposes neutral questionId');
+});
+
+console.log('');
+console.log('=== DEBUG LAYOUT HELPER (dev-only, pure checks) ===');
+var DebugLayout = require(path.join(ROOT, 'js', 'debug-layout.js'));
+
+test('LAYOUT', 'pure geometry: overlap and containment predicates', function () {
+  var a = { left: 0, top: 0, right: 100, bottom: 50 };
+  var b = { left: 60, top: 20, right: 160, bottom: 80 };
+  var far = { left: 200, top: 0, right: 300, bottom: 50 };
+  ok(DebugLayout.overlaps(a, b), 'a/b overlap');
+  ok(!DebugLayout.overlaps(a, far), 'a/far disjoint');
+  var box = { left: -10, top: -10, right: 1000, bottom: 1000 };
+  ok(DebugLayout.fitsInside(a, box), 'a inside box');
+  ok(DebugLayout.fitsInside(b, box), 'b inside box');
+  ok(!DebugLayout.fitsInside(far, { left: 0, top: 0, right: 250, bottom: 400 }), 'far exceeds the right edge');
+});
+
+test('LAYOUT', 'checkLayout flags bank/actions/progress collisions and offscreen content', function () {
+  var vp = { width: 1280, height: 720 };
+  var clean = {
+    hud:      { left: 0, top: 0, right: 1280, bottom: 60 },
+    board:    { left: 40, top: 90, right: 700, bottom: 430 },
+    slots:    { left: 200, top: 440, right: 560, bottom: 500 },
+    bank:     { left: 760, top: 100, right: 1080, bottom: 420 },
+    actions:  { left: 820, top: 430, right: 1020, bottom: 620 },
+    progress: { left: 340, top: 640, right: 940, bottom: 700 }
+  };
+  var okResults = DebugLayout.checkLayout(clean, vp);
+  ok(okResults.every(function (r) { return r.ok; }), 'clean layout passes every assertion');
+
+  var clashing = JSON.parse(JSON.stringify(clean));
+  clashing.actions.top = 600; clashing.actions.bottom = 680; // runs into progress (640)
+  var bad = DebugLayout.checkLayout(clashing, vp);
+  ok(!bad.every(function (r) { return r.ok; }), 'clash detected');
+  ok(bad.some(function (r) { return !r.ok && r.name.indexOf('actions vs progress') !== -1; }), 'names the actions/progress collision');
+
+  var offscreen = JSON.parse(JSON.stringify(clean));
+  offscreen.bank.right = 1400; // beyond the 1280 viewport
+  var bad2 = DebugLayout.checkLayout(offscreen, vp);
+  ok(bad2.some(function (r) { return !r.ok && r.name === 'bank inside viewport'; }), 'offscreen bank flagged');
+});
+
+test('LAYOUT', 'debug helper is dev-only: not referenced by index.html unconditionally', function () {
+  var html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  ok(html.indexOf('js/debug-layout.js') === -1, 'production markup never loads the audit script');
+  var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
+  ok(main.indexOf('debug=layout') !== -1, 'main.js gates it behind the ?debug=layout parameter');
 });
 
 console.log('');
