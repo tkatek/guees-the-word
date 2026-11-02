@@ -118,10 +118,11 @@
   }
 
   // Grid layout helper for the renderer's PHONE stack: 9 tiles -> the approved
-  // 3x3; 10-12 -> 6 columns (two keyboard-like rows, banks are capped at 12);
-  // anything larger -> 4 columns (defensive; the data contract never exceeds 12).
+  // chunky 3x3; 10-16 -> 4 full-width columns (3-4 rows). The columns stretch
+  // to the bank's width (minmax(0,1fr) in style.css), so the bank uses the
+  // whole usable phone width instead of clustering in the center.
   function gridColumns(tileCount) {
-    return tileCount <= 9 ? 3 : tileCount <= 12 ? 6 : 4;
+    return tileCount <= 9 ? 3 : 4;
   }
 
   return {

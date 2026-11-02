@@ -693,19 +693,32 @@ body {
 .bubble.sad { color: var(--red); border-color: #f3b0a4; }
 @keyframes bubble-in { from { transform: translateX(-50%) scale(.7); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
 
-/* ---------- answer slots (single supplied sprite, repeated) ---------- */
+/* ---------- answer slots (single supplied sprite, repeated) ----------
+   Long names wrap into BALANCED centered rows (.slot-row, built by the
+   renderer from the measured width). Width/min-width/max-width guard the
+   parent chain so the grid can never push slots past the screen edge. */
 .slots {
   flex: none;
   margin-top: calc(var(--gap) * -0.4);
-  display: grid;
-  grid-template-columns: repeat(var(--slot-cols, 3), auto);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(4px, 1vh, 10px);
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+.slot-row {
+  display: flex;
   justify-content: center;
   gap: clamp(5px, 1.2vw, 14px);
   max-width: 100%;
 }
 .slot {
+  --slot-size: var(--slot-w-fit, var(--slot-w)); /* fitted by renderer.js */
   position: relative;
-  width: var(--slot-w);
+  flex: none;
+  width: var(--slot-size);
   aspect-ratio: 648 / 465;
   padding: 0; border: none; background: none; cursor: pointer;
   font-family: inherit;
@@ -719,7 +732,7 @@ body {
 .slot .glyph {
   position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center;
-  font-size: calc(var(--slot-w) * .42);
+  font-size: calc(var(--slot-size) * .42);
   font-weight: bold; color: var(--navy);
   text-shadow: 0 2px 0 rgba(255, 255, 255, .55);
 }
@@ -736,21 +749,18 @@ body {
 }
 
 /* ---------- glossy arcade letter tiles ---------- */
-.bank-wrap { flex: none; width: 100%; display: flex; justify-content: center; }
+.bank-wrap { flex: none; width: 100%; min-width: 0; display: flex; justify-content: center; }
 .bank {
   display: grid;
   grid-template-columns: repeat(var(--cols-narrow, 3), auto);
   justify-content: center;
   gap: clamp(5px, 1.1vw, 12px);
+  min-width: 0;
+  max-width: 100%;
 }
 @media (min-width: 880px) and (min-height: 560px) {
   .bank { grid-template-columns: repeat(var(--cols-wide, 9), auto); }
 }
-/* 6-column keyboard-style bank (10-12 tiles, phone stack): slightly smaller
-   tiles + tighter column gaps so six columns always fit the phone width —
-   the approved 3x3 chunky bank is untouched for 9-tile levels */
-.bank[data-cols="6"] { gap: clamp(5px, 2vw, 10px); }
-.bank[data-cols="6"] .tile { --tile-w: clamp(44px, 12vw, 56px); }
 .tile {
   --tile-w: clamp(46px, 8.6vw, 76px);
   position: relative;
@@ -811,11 +821,10 @@ body {
   padding: 0; border: none; background: none; cursor: pointer;
   width: clamp(108px, 13.5vw, 196px);
   transition: transform .13s ease, filter .15s ease;
-  filter: drop-shadow(0 5px 7px rgba(20, 40, 60, .32));
 }
 .action-btn img { width: 100%; height: auto; display: block; pointer-events: none; }
 .action-btn:hover { transform: translateY(-2px); }
-.action-btn:active { transform: translateY(3px) scale(.97); filter: drop-shadow(0 2px 3px rgba(20,40,60,.3)); }
+.action-btn:active { transform: translateY(3px) scale(.97); }
 .action-btn:focus-visible { outline: 4px dashed #fff; outline-offset: 3px; border-radius: 18px; }
 .action-btn[disabled] { opacity: .42; filter: grayscale(.55); cursor: not-allowed; transform: none; }
 /* affordable-but-broke hint: tappable (engine explains), visually dimmed gold */
@@ -980,7 +989,7 @@ body {
 }
 
 /* phones (portrait): match the phone reference —
-   HUD on two rows, wide board, 3x3 letter bank (4 cols for 10-16 tiles) */
+   HUD on two rows, wide board, full-width 3x3 or 4-column letter bank */
 @media (orientation: portrait) and (max-width: 760px) {
   .hud {
     display: grid;
@@ -999,21 +1008,37 @@ body {
   .stage { justify-content: space-evenly; overflow-y: auto; }
   .board-frame { width: min(88vw, 62vh * 2.02); }
   .slots { --slot-w: clamp(46px, 14vw, 66px); }
-  .tile { --tile-w: clamp(48px, 15vw, 64px); }
-  /* reference tile rhythm: ~10-14px column gaps, ~8-12px row gaps */
-  .bank { gap: clamp(8px, 2.6vw, 12px) clamp(10px, 3vw, 14px); }
-  .action-btn { width: clamp(88px, 28vw, 120px); }
-  .actions { gap: 8px; }
+  /* smaller slot art still keeps a 44px-tall tap target */
+  .slot { min-height: 44px; }
+  /* the bank owns ~94% of the usable phone width (10-16px effective margins);
+     columns stretch to fill it — 3x3 for 9 tiles, 4 columns for 10-16 */
+  .bank-wrap { width: 94%; }
+  .bank {
+    width: 100%;
+    max-width: 480px;
+    grid-template-columns: repeat(var(--cols-narrow, 3), minmax(0, 1fr));
+    gap: clamp(8px, 2.4vw, 12px);
+  }
+  /* width and height are sized independently: wide glossy keys that fill the
+     row, height capped in the 52-70px touch band (4-row banks stay compact) */
+  .tile {
+    --tile-h: clamp(52px, 15vw, 68px);
+    width: auto;
+    height: var(--tile-h);
+    font-size: calc(var(--tile-h) * .5);
+  }
+  /* the three action buttons share one balanced full-width row and grow
+     ~10-15% vs the old fixed clamp; sprites keep their aspect ratios */
+  .actions { gap: 6px; padding-left: 0; padding-right: 0; }
+  .action-btn { flex: 1 1 0; min-width: 0; max-width: 140px; width: auto; }
 }
 @media (max-width: 360px) {
   .badge { padding: 4px 9px; font-size: 12px; }
   /* shrink the board first; tiles never drop below the 44px touch minimum */
   .board-frame { width: min(78vw, 58vh * 2.02); }
-  .tile { --tile-w: clamp(44px, 13vw, 52px); }
-  .bank { gap: 8px 10px; }
+  .bank { gap: 8px; }
+  .tile { --tile-h: clamp(52px, 15vw, 60px); }
   .progress-holder { width: 92vw; }
-  /* 12-letter answers wrap 6+6: keep both rows inside the narrow viewport */
-  .slots { --slot-w: clamp(34px, 11vw, 52px); gap: 5px; }
 }
 
 /* tablets: intermediate board + tiles */
@@ -1127,19 +1152,55 @@ body {
 .stage.game--tight .actions { margin-top: 4px; gap: clamp(8px, 2vw, 22px); }
 .stage.game--tight .action-btn { width: clamp(94px, 12vw, 160px); }
 .stage.game--tight .progress-holder { width: min(52vw, 40vh, 540px); }
-/* Portrait phones in tight mode: compression comes from spacing and tile
-   sizing ONLY — the chalkboard, slots, tiles and buttons keep (nearly) the
-   approved reference widths so short phones still fill the screen instead of
-   collapsing into a small centered column. The height caps above stay
-   reserved for short LANDSCAPE viewports, where width is not the constraint. */
+/* Portrait phones in tight mode: NO internal scrolling — the stack must fit
+   the real screen (real phones lose ~100px of the CSS height to browser
+   chrome, so compression keys off vh, not the raw device spec). Touch floors
+   hold: slots/tiles never drop below a 44px hit target. */
 @media (orientation: portrait) and (max-width: 760px) {
-  .stage.game--tight .board-frame { width: min(88vw, 44vh * 2.02); }
-  .stage.game--tight .slots { --slot-w: clamp(40px, 12vw, 66px); }
-  .stage.game--tight .tile { --tile-w: clamp(44px, 13vw, 64px); }
-  .stage.game--tight .action-btn { width: clamp(88px, 24vw, 120px); }
+  .stage.game--tight .title-banner {
+    margin: 0 auto 2px auto;
+    padding-top: clamp(2px, .6vh, 6px);
+    padding-bottom: clamp(3px, .8vh, 8px);
+  }
+  .stage.game--tight .title-text { font-size: clamp(13px, 2vh, 18px); }
+  .stage.game--tight .board-frame { width: min(76vw, 40vh * 2.02); }
+  .stage.game--tight .slots { --slot-w: clamp(44px, 12vw, 66px); }
+  .stage.game--tight .tile { --tile-h: clamp(44px, 8vh, 52px); }
+  .stage.game--tight .actions {
+    margin-top: 2px;
+    padding-top: 2px;
+    padding-bottom: calc(2px + env(safe-area-inset-bottom) / 2);
+    background: linear-gradient(180deg, rgba(214, 235, 246, 0), rgba(214, 235, 246, .86) 36%, rgba(214, 235, 246, .94));
+  }
+  .stage.game--tight .action-btn { max-width: 120px; }
+  .stage.game--tight .progress-holder { width: min(52vw, 36vh, 420px); }
+  .stage.game--tight .progress-title { font-size: clamp(10px, 1.4vh, 14px); }
+}
+/* first step for real-phone heights (browser chrome shrinks 100dvh): trim the
+   height-driven pieces BEFORE tight mode is even needed */
+@media (orientation: portrait) and (max-width: 760px) and (max-height: 780px) {
+  .board-frame { width: min(84vw, 52vh * 2.02); }
+  .tile { --tile-h: clamp(48px, 13vw, 60px); }
+  .progress-holder { width: min(56vw, 40vh, 480px); }
+}
+/* very short viewports (small phones, split-screen): deepest compression that
+   still respects the 44px touch floors */
+@media (orientation: portrait) and (max-width: 760px) and (max-height: 620px) {
+  .hud { row-gap: 2px; }
+  .title-banner { margin-top: 0; }
+  .title-text { font-size: 13px; }
+  .board-frame { width: min(74vw, 38vh * 2.02); }
+  .tile { --tile-h: 46px; }
+  .bank { gap: 6px; }
+  .slots { gap: 3px; }
+  .slot-row { gap: 4px; }
+  .action-btn { max-width: 108px; }
+  .actions { margin-top: 2px; }
+  .progress-holder { width: min(50vw, 34vh, 340px); }
+  .progress-zone { padding-bottom: max(4px, env(safe-area-inset-bottom)); }
 }
 @media (orientation: portrait) and (max-width: 360px) {
-  .stage.game--tight .board-frame { width: min(78vw, 44vh * 2.02); }
+  /* tight board cap already shrinks with height; nothing extra needed here */
 }
 
 /* reduced motion */

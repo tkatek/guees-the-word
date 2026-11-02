@@ -54,10 +54,15 @@
       });
       // Re-check the centered-stack fit when the viewport changes; never touches
       // engine state, so input, shuffled tiles and the timer are unaffected.
+      // reflowSlots re-derives the balanced answer-slot rows from the new width
+      // (rotation/resize); it only rebuilds the DOM when the grouping changes.
       var resizeTimer = null;
       window.addEventListener('resize', function () {
         if (resizeTimer) clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(function () { renderer.checkLayoutFit(); }, 150);
+        resizeTimer = setTimeout(function () {
+          renderer.reflowSlots();
+          renderer.checkLayoutFit();
+        }, 150);
       });
       // Development-only layout assertions: ?debug=layout (no cost in production —
       // the extra script is only fetched when the parameter is present).

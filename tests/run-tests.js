@@ -258,10 +258,10 @@ test('LETTERS', 'repeated-letter answers carry correct duplicate counts (RABBIT,
   ok(hippo.P >= 3 && hippo.O >= 2 && hippo.H >= 1 && hippo.I >= 1 && hippo.T >= 1 && hippo.A >= 1 && hippo.M >= 1 && hippo.U >= 1 && hippo.S >= 1, 'HIPPOPOTAMUS needs P x3, O x2');
 });
 
-test('LETTERS', 'grid layout helper: 9 -> 3 columns, 10-12 -> 6 columns (2 phone rows), 13+ -> 4 columns', function () {
+test('LETTERS', 'grid layout helper: 9 -> 3 columns, 10-16 -> 4 full-width columns', function () {
   eq(Letters.gridColumns(9), 3);
-  eq(Letters.gridColumns(10), 6);
-  eq(Letters.gridColumns(12), 6);
+  eq(Letters.gridColumns(10), 4);
+  eq(Letters.gridColumns(12), 4);
   eq(Letters.gridColumns(14), 4);
   eq(Letters.gridColumns(16), 4);
 });
@@ -1371,13 +1371,83 @@ test('FIT', 'renderer measures inertly: applied tight class never hides a real o
   ok(!/tight = stage\.scrollHeight > stage\.clientHeight/.test(src), 'old self-referential measurement is gone');
 });
 
-test('FIT', 'portrait phones keep the full-width chalkboard in tight mode', function () {
+test('FIT', 'portrait phones keep a wide chalkboard in tight mode and never need scrolling', function () {
   var css = fs.readFileSync(path.join(ROOT, 'css', 'style.css'), 'utf8');
-  ok(/orientation: portrait\) and \(max-width: 760px\)\s*\{\s*\.stage\.game--tight \.board-frame\s*\{\s*width: min\(88vw, 44vh \* 2\.02\);/.test(css),
-    'portrait tight board uses the full reference width');
+  ok(/@media \(orientation: portrait\) and \(max-width: 760px\)\s*\{[\s\S]*?\.stage\.game--tight \.board-frame\s*\{\s*width: min\(76vw, 40vh \* 2\.02\);/.test(css),
+    'portrait tight board keeps most of the reference width but gains a height cap');
+  // no-scroll contract: every portrait tier holds the 44px touch floors while
+  // compressing (tiles/slots never shrink below a 44px hit target)
+  ok(/\.stage\.game--tight \.tile\s*\{\s*--tile-h: clamp\(44px, 8vh, 52px\)/.test(css), 'tight tiles keep the 44px floor');
+  ok(/max-height: 620px\)/.test(css), 'deepest short-screen tier exists');
   ok(css.indexOf('css/style.css') === -1 || true, 'css readable');
   ok(/style\.css\?v=\d+/.test(fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')),
     'stylesheet link carries a cache-busting version so deployed phones pick up fixes');
+});
+
+console.log('');
+console.log('=== BALANCED ANSWER-SLOT ROW LAYOUT (long words wrap, never overflow) ===');
+
+var balancedRows = RendererMod.balancedRows;
+var rowCapacity = RendererMod.rowCapacity;
+
+test('ROWS', 'balancedRows + rowCapacity exported from renderer.js', function () {
+  ok(typeof balancedRows === 'function' && typeof rowCapacity === 'function', 'exports');
+});
+
+test('ROWS', 'spec examples: short words single row; long names split balanced, bigger row first', function () {
+  deepEq(balancedRows(3, 6), [3], 'CAT (3)');
+  deepEq(balancedRows(4, 6), [4], 'DUCK (4)');
+  deepEq(balancedRows(7, 4), [4, 3], 'PENGUIN (7) -> 4+3, never 7 in a row on a narrow phone');
+  deepEq(balancedRows(8, 4), [4, 4], 'ELEPHANT/FLAMINGO/KANGAROO (8) -> 4+4');
+  deepEq(balancedRows(9, 5), [5, 4], 'ORANGUTAN (9) -> 5+4');
+  deepEq(balancedRows(9, 4), [3, 3, 3], 'ORANGUTAN forced to 4-wide: 3 equal rows, never 4+4+1');
+  deepEq(balancedRows(10, 5), [5, 5], 'RHINOCEROS/WOODPECKER (10) -> 5+5, never 6+4');
+  deepEq(balancedRows(10, 6), [5, 5], 'capacity 6 still balances 10 -> 5+5');
+  deepEq(balancedRows(11, 6), [6, 5], 'HUMMINGBIRD (11) -> 6+5');
+  deepEq(balancedRows(11, 4), [4, 4, 3], 'HUMMINGBIRD on very narrow -> 4+4+3 (three rows only if needed)');
+  deepEq(balancedRows(12, 6), [6, 6], 'HIPPOPOTAMUS (12) -> 6+6, never 7+1');
+  deepEq(balancedRows(12, 5), [4, 4, 4], '12 on a 5-wide phone -> 4+4+4');
+  deepEq(balancedRows(12, 12), [12], 'wide viewport keeps one row');
+});
+
+test('ROWS', 'invariants: rows sum to n, no row exceeds capacity, rows differ by <= 1', function () {
+  for (var n = 2; n <= 16; n++) {
+    for (var cap = 2; cap <= 8; cap++) {
+      var rows = balancedRows(n, cap);
+      var sum = rows.reduce(function (a, b) { return a + b; }, 0);
+      eq(sum, n, n + ' slots preserved across rows (cap ' + cap + ')');
+      rows.forEach(function (r) {
+        ok(r <= Math.max(2, Math.min(cap, n)), 'row ' + r + ' <= cap ' + cap);
+        ok(r >= 1, 'no empty rows');
+      });
+      eq(Math.max.apply(null, rows) - Math.min.apply(null, rows) <= 1, true, 'balanced (cap ' + cap + ')');
+      // global-index order: flattening the rows must be 0..n-1
+      var flat = [];
+      rows.forEach(function (r) { for (var i = 0; i < r; i++) flat.push(flat.length); });
+      eq(flat.length, n, 'flattened visual order covers every global index');
+    }
+  }
+});
+
+test('ROWS', 'rowCapacity: 44px minimum slots; phone 374px usable fits 6-7; caps at 8', function () {
+  eq(rowCapacity(374, 6, 44), 7, '390px phone (374 usable): 7 per row possible');
+  eq(rowCapacity(304, 6, 44), 6, '320px phone (304 usable): 6 per row');
+  eq(rowCapacity(414, 6, 44), 8, '430px phone hits the 8-column cap (established desktop look)');
+  eq(rowCapacity(1326, 14, 44), 8, 'desktop also capped at 8');
+  eq(rowCapacity(0, 6, 44), 2, 'degenerate width still yields a sane floor');
+});
+
+test('ROWS', 'renderer keeps GLOBAL slot indices: DOM structure maps visual rows onto engine slots', function () {
+  // Source-level contract: every slot button carries data-slot = its global
+  // answer index, and rows are .slot-row wrappers inside #slots (a tap in row 2
+  // must undo the right letter, not the row-local position).
+  var src = fs.readFileSync(path.join(ROOT, 'js', 'renderer.js'), 'utf8');
+  ok(src.indexOf("b.setAttribute('data-slot', String(idx))") !== -1, 'global index stamped per slot');
+  ok(src.indexOf("querySelectorAll('.slot')") !== -1, 'sync iterates slots in DOM order == global order');
+  ok(src.indexOf('reflowSlots') !== -1, 'width-driven regrouping entry point exists');
+  ok(src.indexOf('--slot-w-fit') !== -1, 'fitted slot width applied from measured space');
+  var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
+  ok(main.indexOf('renderer.reflowSlots()') !== -1, 'resize/rotation re-derives rows');
 });
 
 console.log('');

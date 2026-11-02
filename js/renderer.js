@@ -25,6 +25,36 @@
 
   function $(id) { return document.getElementById(id); }
 
+  /* ---------------- balanced answer-slot row layout (pure) ----------------
+   * Long animal names used to render every answer slot in ONE horizontal row,
+   * so 7-12 paw slots (fixed --slot-w) overran the phone screen on both sides.
+   * The slots are now grouped into BALANCED centered visual rows derived from
+   * the real container width. Every slot keeps its GLOBAL answer index
+   * (data-slot), so tapping, undo, hints, repeated letters and auto-check are
+   * unaffected by which visual row a slot lands in.
+   */
+
+  // Split n slots into balanced rows: bigger rows first so a leading row is
+  // never longer than needed (7 -> [4,3], 8 -> [4,4], 10 -> [5,5], 11 -> [6,5],
+  // 12 -> [6,6]; never 7+1 when 4+3 is possible).
+  function balancedRows(n, maxCols) {
+    var cap = Math.max(2, Math.min(maxCols, n));
+    if (n <= cap) return [n];
+    var rows = Math.ceil(n / cap);
+    var base = Math.floor(n / rows);
+    var extra = n - base * rows;
+    var out = [];
+    for (var i = 0; i < rows; i++) out.push(base + (i < extra ? 1 : 0));
+    return out;
+  }
+
+  // How many slots fit per row: max(2, floor((usable + gap)/(minSlot + gap))),
+  // capped at 8 so wide screens keep the established <= 8-per-row look.
+  function rowCapacity(usableWidth, gap, minSlot) {
+    if (!(usableWidth > 0)) return 2;
+    return Math.max(2, Math.min(8, Math.floor((usableWidth + gap) / (minSlot + gap))));
+  }
+
   function Renderer(assets) {
     this.assets = assets;
     this.el = {
@@ -47,6 +77,7 @@
     };
     this._lastTiles = null;
     this._lastSlots = null;
+    this._slotState = null;    // last slot snapshot, for width-driven reflows
     this._step = -1;
     this._bubbleTimer = null;
     this._toastTimer = null;
@@ -287,26 +318,16 @@
   };
 
   Renderer.prototype._renderSlots = function (slots, rebuild) {
+    this._slotState = slots; // remembered so width-driven reflows can regroup rows
     var box = this.el.slots;
-    var needRebuild = rebuild || this._lastSlots === null || box.children.length !== slots.length;
-    if (needRebuild) {
-      box.innerHTML = '';
-      var cols = slots.length <= 8 ? slots.length : Math.ceil(slots.length / 2);
-      box.style.setProperty('--slot-cols', String(cols));
-      slots.forEach(function (s, i) {
-        var b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'slot';
-        b.setAttribute('data-action', 'slot');
-        b.setAttribute('data-slot', String(i));
-        b.setAttribute('aria-label', 'Answer slot ' + (i + 1) +
-          (s.letter ? ', letter ' + s.letter + ', tap to remove' : ', empty'));
-        b.innerHTML = '<span class="art" aria-hidden="true"></span><span class="glyph" aria-hidden="true"></span>';
-        box.appendChild(b);
-      });
-      this._lastSlots = slots.length;
-    }
-    Array.prototype.forEach.call(box.children, function (b, i) {
+    var desired = this._slotLayout(slots.length);
+    var current = this._rowsInDom(box);
+    var needRebuild = rebuild || current.length === 0 ||
+      String(current) !== String(desired.rows) ||
+      box.querySelectorAll('.slot').length !== slots.length;
+    if (needRebuild) this._buildSlotRows(slots.length, desired);
+    var buttons = box.querySelectorAll('.slot');
+    Array.prototype.forEach.call(buttons, function (b, i) {
       var s = slots[i];
       var glyph = b.querySelector('.glyph');
       var had = glyph.textContent;
@@ -323,6 +344,73 @@
     });
   };
 
+  // Current visual row grouping from the DOM: [.slot-row] child counts.
+  Renderer.prototype._rowsInDom = function (box) {
+    var rows = box.querySelectorAll('.slot-row');
+    var out = [];
+    for (var i = 0; i < rows.length; i++) out.push(rows[i].children.length);
+    return out;
+  };
+
+  /*
+   * Measure the real stage inner width and derive the balanced row grouping
+   * plus the fitted slot art size. Width-only: nothing here depends on the
+   * slot layout itself, so re-running it can never feed back into its own
+   * measurement (no shrink/zoom oscillation between questions).
+   */
+  Renderer.prototype._slotLayout = function (count) {
+    var stage = this.el.stage;
+    var cs = getComputedStyle(stage);
+    var usable = stage.clientWidth - parseFloat(cs.paddingLeft || '0') - parseFloat(cs.paddingRight || '0');
+    // mirror the CSS row gap clamp(5px, 1.2vw, 14px) so art + gaps fit exactly
+    var gap = Math.max(5, Math.min(14, stage.clientWidth * 0.012));
+    var capacity = rowCapacity(usable, gap, 44);
+    var rows = balancedRows(count, capacity);
+    var longest = Math.max.apply(null, rows);
+    return { rows: rows, usable: usable, gap: gap, longest: longest };
+  };
+
+  // Build one .slot-row per visual row. Buttons carry GLOBAL answer indices in
+  // order, so a slot in row 2 still maps to its engine slot (undo, hints...).
+  Renderer.prototype._buildSlotRows = function (count, layout) {
+    var box = this.el.slots;
+    box.innerHTML = '';
+    var idx = 0;
+    layout.rows.forEach(function (rowLen) {
+      var row = document.createElement('div');
+      row.className = 'slot-row';
+      for (var i = 0; i < rowLen; i++, idx++) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'slot';
+        b.setAttribute('data-action', 'slot');
+        b.setAttribute('data-slot', String(idx));
+        b.setAttribute('aria-label', 'Answer slot ' + (idx + 1) + ', empty');
+        b.innerHTML = '<span class="art" aria-hidden="true"></span><span class="glyph" aria-hidden="true"></span>';
+        row.appendChild(b);
+      }
+      box.appendChild(row);
+    });
+    // Slot art size: the CSS clamp value when it fits, otherwise exactly what
+    // the longest row needs. Never wider than the available width.
+    var probe = box.querySelector('.slot');
+    var cssW = probe ? parseFloat(getComputedStyle(probe).width) : 46;
+    var fitW = (layout.usable - (layout.longest - 1) * layout.gap) / layout.longest;
+    var w = Math.max(30, Math.min(cssW || 46, fitW || cssW || 46));
+    box.style.setProperty('--slot-w-fit', w.toFixed(2) + 'px');
+  };
+
+  // Viewport width or orientation changed: re-derive the row grouping. The DOM
+  // is rebuilt ONLY when the grouping actually changes; letters/locks are then
+  // re-applied from the last engine snapshot, so nothing about the round
+  // (placed letters, bank, timer) is reset and no listeners duplicate (input
+  // is delegated at document level).
+  Renderer.prototype.reflowSlots = function () {
+    if (!this._slotState) return;
+    if (!this.el.screens.game || this.el.screens.game.classList.contains('hidden')) return;
+    this._renderSlots(this._slotState, false);
+  };
+
   Renderer.prototype._renderBank = function (tiles, rebuild) {
     var box = this.el.bank;
     var ids = tiles.map(function (t) { return t.id; }).join(',');
@@ -332,7 +420,7 @@
       // desktop: one centered row up to 9 tiles, two balanced rows above that
       var colsWide = count <= 9 ? count : Math.ceil(count / 2);
       // phone (reference layout): 3 equal columns x 3 rows for 9 tiles,
-      // 6 columns x 2 keyboard-like rows for 10-12 tile banks (no scroll)
+      // 4 full-width columns (3-4 rows) for 10-16 tile banks
       var colsNarrow = Letters.gridColumns(count);
       // desktop side panel keeps its own 3/4-column rhythm regardless of the
       // phone stack geometry (--cols-panel is read by .game--advanced only)
@@ -627,5 +715,5 @@
     );
   };
 
-  return { Renderer: Renderer, fitDecision: fitDecision };
+  return { Renderer: Renderer, fitDecision: fitDecision, balancedRows: balancedRows, rowCapacity: rowCapacity };
 });
