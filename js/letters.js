@@ -117,9 +117,11 @@
     return tiles;
   }
 
-  // Grid layout helper for the renderer: 9 tiles -> 3x3, everything else -> 4 columns (4x3 / 4x4).
+  // Grid layout helper for the renderer's PHONE stack: 9 tiles -> the approved
+  // 3x3; 10-12 -> 6 columns (two keyboard-like rows, banks are capped at 12);
+  // anything larger -> 4 columns (defensive; the data contract never exceeds 12).
   function gridColumns(tileCount) {
-    return tileCount <= 9 ? 3 : 4;
+    return tileCount <= 9 ? 3 : tileCount <= 12 ? 6 : 4;
   }
 
   return {

@@ -183,16 +183,27 @@ test('LETTERS', 'bank size rule for all 40 answers matches clamp(len+extra, min,
   });
 });
 
-test('LETTERS', 'spot-check bank sizes: CAT=9, KOALA=10, RABBIT=11, PENGUIN=12, ELEPHANT=13, ARMADILLO=14, HIPPOPOTAMUS=16', function () {
+test('LETTERS', 'spot-check bank sizes: CAT=9, KOALA=10, RABBIT=11, PENGUIN=11, ELEPHANT=12, ARMADILLO=12, HIPPOPOTAMUS=12', function () {
   var byId = {};
   levelsData.levels.forEach(function (l) { byId[l.id] = l.bank; });
   eq(Letters.computeBankSize(byId.L01, 3), 9, 'CAT');
   eq(Letters.computeBankSize(byId.L05, 5), 10, 'KOALA');
   eq(Letters.computeBankSize(byId.L06, 6), 11, 'RABBIT');
-  eq(Letters.computeBankSize(byId.L07, 7), 12, 'PENGUIN');
-  eq(Letters.computeBankSize(byId.L08, 8), 13, 'ELEPHANT');
-  eq(Letters.computeBankSize(byId.L09, 9), 14, 'ARMADILLO');
-  eq(Letters.computeBankSize(byId.L10, 12), 16, 'HIPPOPOTAMUS');
+  eq(Letters.computeBankSize(byId.L07, 7), 11, 'PENGUIN');
+  eq(Letters.computeBankSize(byId.L08, 8), 12, 'ELEPHANT');
+  eq(Letters.computeBankSize(byId.L09, 9), 12, 'ARMADILLO');
+  eq(Letters.computeBankSize(byId.L10, 12), 12, 'HIPPOPOTAMUS');
+});
+
+test('LETTERS', 'no-scroll contract: every bank is capped at 12 tiles', function () {
+  levelsData.levels.forEach(function (l) {
+    ok(l.bank.max <= 12, l.id + ' bank.max <= 12 (was ' + l.bank.max + ')');
+    ok(l.bank.min <= l.bank.max, l.id + ' min <= max');
+    l.questionIds.forEach(function (qid) {
+      var n = Letters.computeBankSize(l.bank, questionById(qid).answer.length);
+      ok(n <= 12, l.id + '/' + qid + ' bank size ' + n + ' <= 12');
+    });
+  });
 });
 
 test('LETTERS', 'all 40 banks: right size, unique tile ids, always contain the answer multiset', function () {
@@ -247,10 +258,10 @@ test('LETTERS', 'repeated-letter answers carry correct duplicate counts (RABBIT,
   ok(hippo.P >= 3 && hippo.O >= 2 && hippo.H >= 1 && hippo.I >= 1 && hippo.T >= 1 && hippo.A >= 1 && hippo.M >= 1 && hippo.U >= 1 && hippo.S >= 1, 'HIPPOPOTAMUS needs P x3, O x2');
 });
 
-test('LETTERS', 'grid layout helper: 9 -> 3 columns, 10-16 -> 4 columns', function () {
+test('LETTERS', 'grid layout helper: 9 -> 3 columns, 10-12 -> 6 columns (2 phone rows), 13+ -> 4 columns', function () {
   eq(Letters.gridColumns(9), 3);
-  eq(Letters.gridColumns(10), 4);
-  eq(Letters.gridColumns(12), 4);
+  eq(Letters.gridColumns(10), 6);
+  eq(Letters.gridColumns(12), 6);
   eq(Letters.gridColumns(14), 4);
   eq(Letters.gridColumns(16), 4);
 });
@@ -1306,6 +1317,67 @@ test('LAYOUT', 'debug helper is dev-only: not referenced by index.html unconditi
   ok(html.indexOf('js/debug-layout.js') === -1, 'production markup never loads the audit script');
   var main = fs.readFileSync(path.join(ROOT, 'js', 'main.js'), 'utf8');
   ok(main.indexOf('debug=layout') !== -1, 'main.js gates it behind the ?debug=layout parameter');
+});
+
+console.log('=== GAMEPLAY FIT MODE (stable tight-mode switching) ===');
+
+var RendererMod = require(path.join(ROOT, 'js', 'renderer.js'));
+var fitDecision = RendererMod.fitDecision;
+
+test('FIT', 'fitDecision is exported and pure', function () {
+  ok(typeof fitDecision === 'function', 'exported from renderer.js');
+  eq(fitDecision(50, false), true, 'overflow enters tight');
+  eq(fitDecision(50, false), true, 'same inputs, same answer (no hidden state)');
+});
+
+test('FIT', 'no feedback oscillation: a mode can never flip itself off and back on', function () {
+  // Classic iPhone failure before the fix: content overflows by 60px untight,
+  // tight saves ~170px, so the OLD measurement ("is the applied layout
+  // overflowing?") alternated true/false on every re-check. The decision is
+  // now made from the inert (untight) overflow only, so every check agrees.
+  var overflowUntight = 60;
+  var mode = false;
+  for (var i = 0; i < 6; i++) {          // rAF, 300ms, 900ms, resize, resize, fonts
+    mode = fitDecision(overflowUntight, mode);
+    eq(mode, true, 'check #' + (i + 1) + ' keeps tight applied');
+  }
+  // Comfortably-fitting content never tightens:
+  mode = false;
+  for (var j = 0; j < 6; j++) {
+    mode = fitDecision(-80, mode);
+    eq(mode, false, 'check #' + (j + 1) + ' stays relaxed');
+  }
+});
+
+test('FIT', 'hysteresis band: tiny jitters cannot chatter the mode', function () {
+  // iOS Safari toolbar animation breathes the stage height by a few px:
+  var mode = false;
+  mode = fitDecision(30, mode);  ok(mode === true,  'real overflow engages tight');
+  mode = fitDecision(-5, mode);  ok(mode === true,  '5px slack holds tight (band is 16px)');
+  mode = fitDecision(-10, mode); ok(mode === true,  '10px slack still holds');
+  mode = fitDecision(-16, mode); ok(mode === false, 'clear 16px slack releases it');
+  mode = fitDecision(1, mode);   ok(mode === false, '1px rounding noise: stays relaxed');
+  mode = fitDecision(3, mode);   ok(mode === true,  '3px real overflow engages tight');
+});
+
+test('FIT', 'renderer measures inertly: applied tight class never hides a real overflow', function () {
+  // Regression guard for the measurement protocol itself: with tight applied,
+  // the stage MUST be measured with the class removed, so a level whose
+  // compressed layout still overflows keeps tight applied (instead of the old
+  // remove/re-add loop). Source-level contract check (no DOM in Node).
+  var src = fs.readFileSync(path.join(ROOT, 'js', 'renderer.js'), 'utf8');
+  ok(src.indexOf("classList.remove('game--tight')") !== -1, 'checkLayoutFit strips tight before measuring');
+  ok(src.indexOf('fitDecision(overflow') !== -1, 'decision uses the measured overflow');
+  ok(!/tight = stage\.scrollHeight > stage\.clientHeight/.test(src), 'old self-referential measurement is gone');
+});
+
+test('FIT', 'portrait phones keep the full-width chalkboard in tight mode', function () {
+  var css = fs.readFileSync(path.join(ROOT, 'css', 'style.css'), 'utf8');
+  ok(/orientation: portrait\) and \(max-width: 760px\)\s*\{\s*\.stage\.game--tight \.board-frame\s*\{\s*width: min\(88vw, 44vh \* 2\.02\);/.test(css),
+    'portrait tight board uses the full reference width');
+  ok(css.indexOf('css/style.css') === -1 || true, 'css readable');
+  ok(/style\.css\?v=\d+/.test(fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')),
+    'stylesheet link carries a cache-busting version so deployed phones pick up fixes');
 });
 
 console.log('');

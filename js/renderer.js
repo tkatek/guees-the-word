@@ -50,6 +50,7 @@
     this._step = -1;
     this._bubbleTimer = null;
     this._toastTimer = null;
+    this._tight = false;
   }
 
   Renderer.prototype.showScreen = function (name) {
@@ -161,15 +162,41 @@
   };
 
   /*
+   * Pure fit decision with hysteresis. `overflow` is measured with the tight
+   * styles NOT applied (inert measurement); `currentTight` is the mode the
+   * stage is currently in. Entering tight on ANY real overflow (>2px, sub-
+   * pixel rounding slack) guarantees the stage never scrolls in portrait;
+   * leaving it requires clear slack (>=16px), so iOS Safari toolbar
+   * animations breathing the 100dvh stage height cannot chatter the mode.
+   * A pure function of (overflow, currentTight): repeated checks of
+   * unchanged content always agree, so no check can flip a decision an
+   * earlier check made.
+   */
+  function fitDecision(overflow, currentTight) {
+    return currentTight ? overflow > -16 : overflow > 2;
+  }
+
+  /*
    * Real-space check for the centered stack: if the stage content is taller than
    * the reserved stage box (would collide with the bottom progress board), add
    * .game--tight so CSS compresses decorative gaps/sizes first. Runs after every
    * question render and on resize (see main.js). Cheap and idempotent.
+   *
+   * The measurement is INERT: if .game--tight is currently applied it is removed
+   * for the measurement (one synchronous forced reflow, no paint in between) so
+   * the decision is based on the layout we would ship WITHOUT compression.
+   * The applied state therefore never feeds back into its own measurement —
+   * the old "shrink -> now it fits -> unshrink -> overflow again" oscillation
+   * (the temporary zoom-out seen on iPhones) is impossible by construction.
    */
   Renderer.prototype.checkLayoutFit = function () {
     var stage = this.el.stage;
-    if (!stage || stage.classList.contains('hidden')) return false;
-    var tight = stage.scrollHeight > stage.clientHeight + 2;
+    if (!stage || stage.classList.contains('hidden')) return this._tight;
+    var wasTight = stage.classList.contains('game--tight');
+    if (wasTight) stage.classList.remove('game--tight');
+    var overflow = stage.scrollHeight - stage.clientHeight;
+    var tight = fitDecision(overflow, this._tight);
+    this._tight = tight;
     stage.classList.toggle('game--tight', tight);
     return tight;
   };
@@ -305,10 +332,15 @@
       // desktop: one centered row up to 9 tiles, two balanced rows above that
       var colsWide = count <= 9 ? count : Math.ceil(count / 2);
       // phone (reference layout): 3 equal columns x 3 rows for 9 tiles,
-      // balanced 4 columns for 10-16 tile banks
+      // 6 columns x 2 keyboard-like rows for 10-12 tile banks (no scroll)
       var colsNarrow = Letters.gridColumns(count);
+      // desktop side panel keeps its own 3/4-column rhythm regardless of the
+      // phone stack geometry (--cols-panel is read by .game--advanced only)
+      var colsPanel = count <= 9 ? 3 : 4;
+      box.setAttribute('data-cols', String(colsNarrow));
       box.style.setProperty('--cols-wide', String(colsWide));
       box.style.setProperty('--cols-narrow', String(colsNarrow));
+      box.style.setProperty('--cols-panel', String(colsPanel));
       tiles.forEach(function (t, i) {
         var b = document.createElement('button');
         b.type = 'button';
@@ -595,5 +627,5 @@
     );
   };
 
-  return { Renderer: Renderer };
+  return { Renderer: Renderer, fitDecision: fitDecision };
 });

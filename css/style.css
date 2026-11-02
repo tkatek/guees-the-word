@@ -657,7 +657,6 @@ body {
 .animal-mount img.failed { display: none; }  /* missing file: empty board, never broken icon */
 .animal-black {
   filter: brightness(0)
-          drop-shadow(0 0 2.5px rgba(214, 242, 255, .95))   /* pale-cyan outline for contrast */
           drop-shadow(0 3px 6px rgba(10, 30, 20, .35));
   transition: opacity .55s ease;
   z-index: 2;
@@ -747,6 +746,11 @@ body {
 @media (min-width: 880px) and (min-height: 560px) {
   .bank { grid-template-columns: repeat(var(--cols-wide, 9), auto); }
 }
+/* 6-column keyboard-style bank (10-12 tiles, phone stack): slightly smaller
+   tiles + tighter column gaps so six columns always fit the phone width —
+   the approved 3x3 chunky bank is untouched for 9-tile levels */
+.bank[data-cols="6"] { gap: clamp(5px, 2vw, 10px); }
+.bank[data-cols="6"] .tile { --tile-w: clamp(44px, 12vw, 56px); }
 .tile {
   --tile-w: clamp(46px, 8.6vw, 76px);
   position: relative;
@@ -793,17 +797,15 @@ body {
   display: flex; align-items: center; justify-content: center;
   gap: clamp(12px, 3vw, 40px);
   /* ONE pattern everywhere: the button row can never leave the screen.
-     When a big-bank level makes the stage scroll (phones / short landscape),
-     the row sticks to the bottom edge of the visible area; the scrim is
-     enabled only in .game--tight (the renderer's measured-overflow state). */
+     When a big-bank level makes the stage scroll (short landscape only —
+     portrait banks are capped at 12 tiles and always fit), the row sticks
+     to the bottom edge; the scrim lives in the ultra-short landscape
+     media block below, so phones never see a white band behind the buttons. */
   position: sticky;
   bottom: 0;
   z-index: 7;
   padding: clamp(4px, 1vh, 10px) 6px calc(clamp(4px, 1vh, 10px) + 2px);
   transition: background .15s ease;
-}
-.stage.game--tight .actions {
-  background: linear-gradient(180deg, rgba(214, 235, 246, 0), rgba(214, 235, 246, .86) 36%, rgba(214, 235, 246, .94));
 }
 .action-btn {
   padding: 0; border: none; background: none; cursor: pointer;
@@ -1038,6 +1040,11 @@ body {
   .title-banner { margin-bottom: 6px; }
   .actions { margin-top: calc(var(--gap) * .5); }
   .stage { overflow-y: auto; }
+  /* the only place a scroll can still happen: keep the readability scrim
+     behind the sticky button row here (phones in portrait never see it) */
+  .stage.game--tight .actions {
+    background: linear-gradient(180deg, rgba(214, 235, 246, 0), rgba(214, 235, 246, .86) 36%, rgba(214, 235, 246, .94));
+  }
 }
 
 /* ============================================================
@@ -1088,7 +1095,7 @@ body {
   }
   /* side panel bank: 4 columns x 3-4 rows for 12-16 tiles, big legible tiles */
   .stage.game--advanced .bank {
-    grid-template-columns: repeat(var(--cols-narrow, 4), auto);
+    grid-template-columns: repeat(var(--cols-panel, 4), auto);
     gap: clamp(6px, 1.4vh, 14px) clamp(8px, 1vw, 14px);
   }
   .stage.game--advanced .tile { --tile-w: clamp(44px, min(9vw, 8.6vh), 76px); }
@@ -1120,6 +1127,20 @@ body {
 .stage.game--tight .actions { margin-top: 4px; gap: clamp(8px, 2vw, 22px); }
 .stage.game--tight .action-btn { width: clamp(94px, 12vw, 160px); }
 .stage.game--tight .progress-holder { width: min(52vw, 40vh, 540px); }
+/* Portrait phones in tight mode: compression comes from spacing and tile
+   sizing ONLY — the chalkboard, slots, tiles and buttons keep (nearly) the
+   approved reference widths so short phones still fill the screen instead of
+   collapsing into a small centered column. The height caps above stay
+   reserved for short LANDSCAPE viewports, where width is not the constraint. */
+@media (orientation: portrait) and (max-width: 760px) {
+  .stage.game--tight .board-frame { width: min(88vw, 44vh * 2.02); }
+  .stage.game--tight .slots { --slot-w: clamp(40px, 12vw, 66px); }
+  .stage.game--tight .tile { --tile-w: clamp(44px, 13vw, 64px); }
+  .stage.game--tight .action-btn { width: clamp(88px, 24vw, 120px); }
+}
+@media (orientation: portrait) and (max-width: 360px) {
+  .stage.game--tight .board-frame { width: min(78vw, 44vh * 2.02); }
+}
 
 /* reduced motion */
 @media (prefers-reduced-motion: reduce) {

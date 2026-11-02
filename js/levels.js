@@ -25,10 +25,10 @@
       { id: 'L04', name: 'Animal Shapes',    answers: ['HORSE', 'SHEEP', 'SNAKE', 'MOUSE'],         timerSeconds: 70,   bank: { min: 9,  max: 12, extra: 5 } },
       { id: 'L05', name: 'Around the World', answers: ['TIGER', 'ZEBRA', 'PANDA', 'KOALA'],         timerSeconds: 65,   bank: { min: 9,  max: 12, extra: 5 } },
       { id: 'L06', name: 'Animal Adventures',answers: ['RABBIT', 'MONKEY', 'TURTLE', 'CAMEL'],      timerSeconds: 60,   bank: { min: 9,  max: 12, extra: 5 } },
-      { id: 'L07', name: 'Ocean and Sky',    answers: ['PENGUIN', 'GIRAFFE', 'DOLPHIN', 'PARROT'],  timerSeconds: 55,   bank: { min: 11, max: 14, extra: 5 } },
-      { id: 'L08', name: 'Amazing Animals',  answers: ['ELEPHANT', 'KANGAROO', 'FLAMINGO', 'OCTOPUS'], timerSeconds: 50, bank: { min: 11, max: 14, extra: 5 } },
-      { id: 'L09', name: 'Rare Creatures',   answers: ['RHINOCEROS', 'CHAMELEON', 'PORCUPINE', 'ARMADILLO'], timerSeconds: 50, bank: { min: 14, max: 16, extra: 4 } },
-      { id: 'L10', name: 'Animal Experts',   answers: ['HIPPOPOTAMUS', 'WOODPECKER', 'HUMMINGBIRD', 'ORANGUTAN'], timerSeconds: 45, bank: { min: 14, max: 16, extra: 4 } }
+      { id: 'L07', name: 'Ocean and Sky',    answers: ['PENGUIN', 'GIRAFFE', 'DOLPHIN', 'PARROT'],  timerSeconds: 55,   bank: { min: 11, max: 12, extra: 4 } },
+      { id: 'L08', name: 'Amazing Animals',  answers: ['ELEPHANT', 'KANGAROO', 'FLAMINGO', 'OCTOPUS'], timerSeconds: 50, bank: { min: 11, max: 12, extra: 4 } },
+      { id: 'L09', name: 'Rare Creatures',   answers: ['RHINOCEROS', 'CHAMELEON', 'PORCUPINE', 'ARMADILLO'], timerSeconds: 50, bank: { min: 12, max: 12, extra: 2 } },
+      { id: 'L10', name: 'Animal Experts',   answers: ['HIPPOPOTAMUS', 'WOODPECKER', 'HUMMINGBIRD', 'ORANGUTAN'], timerSeconds: 45, bank: { min: 12, max: 12, extra: 2 } }
     ]
   };
 
