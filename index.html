@@ -6,7 +6,12 @@
 <title>Guess the Word — Animal Mystery</title>
 <meta name="description" content="A cheerful animal word-guessing game: 10 levels, 40 mystery animals.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%233e8948'/%3E%3Crect x='8' y='22' width='16' height='4' rx='2' fill='%23f7d774'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=6">
+<link rel="stylesheet" href="css/style.css?v=8">
+<!-- essential home-screen art: load first on every entry path -->
+<link rel="preload" as="image" href="assets/art/logo.png" fetchpriority="high">
+<link rel="preload" as="image" href="assets/art/hero-animals.png" fetchpriority="high">
+<link rel="preload" as="image" href="assets/art/bg-phone.png" media="(orientation: portrait)">
+<link rel="preload" as="image" href="assets/art/bg-desktop.png" media="(orientation: landscape)">
 </head>
 <body>
 <div id="app" class="app" aria-live="polite">
@@ -27,20 +32,37 @@
     </div>
   </div>
 
-  <!-- Home -->
+  <!-- Home (approved reference design: classroom photo, wooden logo sign,
+       five animals + green PLAY artwork, purple/orange pills) -->
   <div id="screen-home" class="screen screen-home hidden">
-    <div class="home-wrap">
-      <div class="panel home-panel">
-        <div class="title-banner home-banner" aria-hidden="true">
-          <span class="paw left"></span><span class="title-text">Guess the animal</span><span class="paw right"></span>
-        </div>
-        <p class="subtitle">ANIMAL&nbsp;MYSTERY · 10 LEVELS · 40 ANIMALS</p>
-        <button class="btn btn-green big" data-action="play">▶ PLAY</button>
-        <div class="home-row">
-          <button class="btn btn-blue" data-action="levels">Level Map</button>
-          <button class="btn btn-blue icon" data-action="sound" id="btn-sound" aria-label="Toggle sound">🔊 <span id="sound-state">On</span></button>
-        </div>
-        <p class="muted">Tap letters to spell the mystery animal!</p>
+    <div class="home-top">
+      <button type="button" class="menu-btn btn-sound" data-action="sound" id="btn-sound" aria-label="Turn sound off" aria-pressed="true">
+        <svg class="snd-on" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M3 9v6h4l5 4.5v-15L7 9H3z"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12"/></svg>
+        <svg class="snd-off" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M3 9v6h4l5 4.5v-15L7 9H3z"/><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" d="m15.5 9.5 5 5m0-5-5 5"/></svg>
+      </button>
+      <button type="button" class="menu-btn" data-action="help" aria-label="How to play">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm.9 15.5h-1.8v-1.9h1.8v1.9zm1.7-6.6-.8.9c-.6.6-.9 1.1-.9 2.1h-1.8c0-1.5.4-2.2 1.2-3l.8-.9c.3-.3.4-.6.4-1 0-.8-.6-1.4-1.5-1.4s-1.5.6-1.5 1.5H9c0-1.9 1.3-3.1 3.2-3.1 1.8 0 3 1.1 3 2.7 0 .9-.3 1.6-.6 2.2z"/></svg>
+      </button>
+    </div>
+    <div class="home-stage">
+      <img class="home-logo" src="assets/art/logo.png" alt="Guess the Animal — Animal Mystery"
+           width="1400" height="634" draggable="false">
+      <div class="home-hero">
+        <button type="button" class="play-hotspot" data-action="play"
+                aria-label="Play — start the next level"></button>
+        <img class="hero-art" src="assets/art/hero-animals.png"
+             alt="Five friendly cartoon animals gathered around a big wooden Play button"
+             width="1050" height="1037" draggable="false">
+      </div>
+      <div class="home-actions">
+        <button type="button" class="btn-pill pill-purple" data-action="levels">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 2a7.3 7.3 0 0 0-7.3 7.3c0 5 5.6 9.8 6.9 12a.9.9 0 0 0 1.5 0c1.3-2.2 6.9-7 6.9-12A7.3 7.3 0 0 0 12 2zm0 4.2a3.1 3.1 0 1 1 0 6.2 3.1 3.1 0 0 1 0-6.2z"/></svg>
+          <span>Level&nbsp;Map</span>
+        </button>
+        <button type="button" class="btn-pill pill-orange" data-action="settings">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M10.3 2.2a1 1 0 0 0-1 .8l-.4 2a7.7 7.7 0 0 0-1.7 1l-2-.7a1 1 0 0 0-1.2.5l-1.4 2.4a1 1 0 0 0 .2 1.2l1.6 1.3a7.8 7.8 0 0 0 0 2l-1.6 1.3a1 1 0 0 0-.2 1.2l1.4 2.4a1 1 0 0 0 1.2.5l2-.7c.5.4 1.1.7 1.7 1l.4 2a1 1 0 0 0 1 .8h2.8a1 1 0 0 0 1-.8l.4-2a7.7 7.7 0 0 0 1.7-1l2 .7a1 1 0 0 0 1.2-.5l1.4-2.4a1 1 0 0 0-.2-1.2L20 13.9a7.8 7.8 0 0 0 0-2l1.6-1.3a1 1 0 0 0 .2-1.2l-1.4-2.4a1 1 0 0 0-1.2-.5l-2 .7a7.7 7.7 0 0 0-1.7-1l-.4-2a1 1 0 0 0-1-.8h-2.8zM12 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/></svg>
+          <span>Settings</span>
+        </button>
       </div>
     </div>
   </div>

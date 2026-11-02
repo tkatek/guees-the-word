@@ -225,9 +225,21 @@
 
   function onAction(action, data, target) {
     switch (action) {
-      case 'play': audio.click(); goLevels(); break;
+      // PLAY jumps straight into the player's next uncompleted level (never
+      // resets progress); if every level is already cleared, offer the map.
+      case 'play': {
+        audio.click();
+        renderer.closeModal();           // may be launched from the help dialog
+        var nextId = nextUncompletedLevelId();
+        if (nextId) startLevel(nextId);
+        else goLevels();
+        break;
+      }
       case 'levels': audio.click(); goLevels(); break;
       case 'home': audio.click(); goHome(); break;
+      case 'help': audio.click(); renderer.showHelp(); break;
+      case 'settings': audio.click(); renderer.showSettings(store.getSoundOn()); break;
+      case 'close-modal': audio.click(); renderer.closeModal(); break;
       case 'start-level': startLevel(data.levelId); break;    // level-start swoosh
       case 'locked-level': audio.denied(); lockedNudge(data.levelId, target); break;
       case 'reload': location.reload(); break;
@@ -288,7 +300,10 @@
   // ---------- keyboard ----------
   function onKey(key, ev) {
     if (renderer.isModalOpen()) {
-      if (key === 'Escape' && game.paused) { game.resume(); return true; }
+      if (key === 'Escape') {
+        if (game.paused) { game.resume(); return true; }
+        if (renderer.getModalKind() === 'menu') { renderer.closeModal(); return true; }
+      }
       if (key === 'Enter') {
         var btn = document.querySelector('#modal .btn-green');
         if (btn) { btn.click(); return true; }

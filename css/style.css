@@ -98,11 +98,155 @@ body {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ---------- home ---------- */
-.home-wrap { margin: auto; width: min(92vw, 560px); }
-.home-panel { text-align: center; }
-.home-banner { margin: 0 auto 6px; }
-.home-row { display: flex; justify-content: center; gap: 12px; margin-top: 14px; }
+/* ---------- home (approved reference: classroom photo + wooden logo +
+     five-animal PLAY artwork + green info board + purple/orange pills) ---------- */
+.screen-home {
+  flex-direction: column;
+  align-items: center;
+  padding-top: max(6px, env(safe-area-inset-top));
+}
+.home-top {
+  flex: none;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: clamp(6px, 1.4vh, 14px) clamp(12px, 3.4vw, 28px) 0;
+  z-index: 5;
+}
+.home-stage {
+  --hero-w: min(92vw, calc(52dvh * 1.0125));
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 clamp(8px, 2.5vw, 20px) max(4px, env(safe-area-inset-bottom));
+}
+/* wooden sign logo: title + subtitle live inside the artwork (no text overlay) */
+.home-logo {
+  display: block;
+  width: min(78vw, 560px);
+  max-width: 100%;
+  height: auto;
+  margin-top: clamp(2px, 1.2dvh, 14px);
+  filter: drop-shadow(0 6px 10px rgba(20, 40, 60, .32));
+  animation: home-logo-in .55s cubic-bezier(.2, 1.35, .4, 1) both;
+  user-select: none;
+}
+@keyframes home-logo-in {
+  from { opacity: 0; transform: translateY(-20px) scale(.92); }
+  65%  { opacity: 1; transform: translateY(0) scale(1.025); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* five-animal group with the wooden PLAY sign.
+   --pill-* geometry covers the WHOLE wooden sign (frame, green pill and
+   flanking leaves), measured from the artwork itself. */
+.home-hero {
+  position: relative;
+  width: var(--hero-w);
+  aspect-ratio: 1050 / 1037;
+  margin-top: clamp(6px, 1.6dvh, 18px);
+  --pill-x: 4%;
+  --pill-y: 66%;
+  --pill-w: 92%;
+  --pill-h: 30%;
+  animation: home-hero-in .5s cubic-bezier(.2, 1.4, .4, 1) .1s both;
+}
+@keyframes home-hero-in {
+  from { opacity: 0; transform: scale(.86); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.home-hero .hero-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+  user-select: none;
+  filter: drop-shadow(0 8px 14px rgba(20, 40, 60, .30));
+  transform-origin: 50% 84%;
+}
+/* invisible-but-real PLAY button locked onto the green pill in the artwork;
+   at least a 44px touch target, always centered on the pill */
+.play-hotspot {
+  position: absolute;
+  left: calc(var(--pill-x) + var(--pill-w) / 2);
+  top: calc(var(--pill-y) + var(--pill-h) / 2);
+  width: max(var(--pill-w), 44px);
+  height: max(var(--pill-h), 44px);
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 999px;
+  -webkit-tap-highlight-color: transparent;
+}
+.play-hotspot:focus-visible {
+  outline: 4px dashed #fff;
+  outline-offset: 3px;
+}
+.play-hotspot:active ~ .hero-art { transform: scale(.975); }
+.hero-art { transition: transform .14s ease; }
+
+/* purple Level Map + orange Settings pills */
+.home-actions {
+  flex: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: clamp(10px, 4vw, 30px);
+  margin-top: clamp(8px, 2dvh, 22px);
+  width: 100%;
+  animation: home-rise .4s ease .26s both;
+}
+@keyframes home-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.btn-pill {
+  flex: 0 1 auto;
+  min-width: min(38vw, 250px);
+  min-height: clamp(48px, 7.4dvh, 68px);
+  padding: clamp(8px, 1.6dvh, 14px) clamp(14px, 4vw, 30px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(6px, 1.8vw, 12px);
+  font-family: inherit;
+  font-weight: bold;
+  font-size: clamp(16px, 4.6vw, 25px);
+  color: #fff;
+  letter-spacing: .4px;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, .28);
+  border: clamp(3px, .8vw, 4px) solid;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow:
+    inset 0 3px 4px rgba(255, 255, 255, .5),
+    inset 0 -6px 8px rgba(0, 0, 0, .22),
+    0 5px 0 rgba(23, 62, 102, .38),
+    0 9px 16px rgba(20, 40, 60, .3);
+  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+  user-select: none;
+}
+.btn-pill svg { width: 1.15em; height: 1.15em; flex: none; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .3)); }
+.btn-pill:hover { filter: brightness(1.06); transform: translateY(-2px); }
+.btn-pill:active { transform: translateY(3px); box-shadow: inset 0 3px 4px rgba(255,255,255,.45), inset 0 -3px 6px rgba(0,0,0,.2), 0 1px 0 rgba(23,62,102,.38); }
+.btn-pill:focus-visible { outline: 4px dashed #fff; outline-offset: 3px; }
+.pill-purple {
+  background: linear-gradient(180deg, #c07ae8 0%, #a44fd3 55%, #8c37b8 100%);
+  border-color: #7c2fb0;
+}
+.pill-orange {
+  background: linear-gradient(180deg, #ffc06a 0%, #f5952f 55%, #e07f1a 100%);
+  border-color: #a05a12;
+}
 /* one-time "100 starter stars" welcome note (non-intrusive pill, auto-hides) */
 .starter-toast {
   position: absolute; left: 50%; bottom: clamp(14px, 6vh, 48px);
@@ -116,6 +260,46 @@ body {
   max-width: 92vw; overflow: hidden; text-overflow: ellipsis;
 }
 .starter-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* home: shorter phones — shrink art + spacing, never the controls */
+@media (max-height: 700px) and (orientation: portrait) {
+  .home-stage { --hero-w: min(88vw, calc(46dvh * 1.0125)); }
+  .home-logo { width: min(76vw, 420px); }
+  .home-hero { margin-top: clamp(4px, 1dvh, 10px); }
+}
+@media (max-height: 600px) and (orientation: portrait) {
+  .home-stage { --hero-w: min(86vw, calc(44dvh * 1.0125)); }
+  .home-logo { width: min(72vw, 380px); margin-top: 0; }
+  .home-hero { margin-top: 4px; }
+  .home-actions { margin-top: 4px; }
+}
+/* home: portrait tablets — big canvas, so trim the logo/hero slightly to
+   keep the paw-print rug visible under the buttons */
+@media (orientation: portrait) and (min-width: 700px) {
+  .home-stage { --hero-w: min(88vw, calc(50dvh * 1.0125)); }
+  .home-logo { width: min(70vw, 500px); }
+}
+/* home: landscape / desktop — logo upper-center, hero the focus, bg visible around */
+@media (orientation: landscape) {
+  .home-top { position: absolute; top: max(6px, env(safe-area-inset-top)); left: 0; right: 0; }
+  .screen-home { padding-top: 0; }
+  .home-stage {
+    --hero-w: min(88vw, calc(54vh * 1.0125));
+    max-width: min(96vw, 1060px);
+    margin: 0 auto;
+    justify-content: center;
+    padding-top: clamp(4px, 1vh, 12px);
+  }
+  .home-logo { width: min(44vw, 480px); margin-top: 0; }
+  .home-hero { margin-top: clamp(6px, 1.4vh, 16px); }
+  .home-actions { margin-top: clamp(6px, 1.6vh, 18px); }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .home-stage { --hero-w: min(80vw, calc(48vh * 1.0125)); }
+  .home-logo { width: min(36vw, 300px); }
+  .home-hero { margin-top: 4px; }
+  .btn-pill { min-height: 44px; min-width: min(30vw, 210px); font-size: clamp(14px, 3vh, 20px); }
+}
 
 /* ---------- level select (wooden-and-leaf reference design) ---------- */
 .levels-wrap {
@@ -411,7 +595,8 @@ body {
   gap: var(--gap);
   padding: 0 clamp(8px, 2vw, 20px);
   z-index: 3;
-  overflow: hidden; /* the stack is sized to fit; nothing may push the page */
+  overflow-x: hidden;
+  overflow-y: auto; /* big-bank levels scroll INSIDE the stage instead of clipping */
 }
 
 /* title arch banner */
@@ -611,6 +796,18 @@ body {
   margin-top: clamp(6px, 2.2vh, 24px);
   display: flex; align-items: center; justify-content: center;
   gap: clamp(12px, 3vw, 40px);
+  /* ONE pattern everywhere: the button row can never leave the screen.
+     When a big-bank level makes the stage scroll (phones / short landscape),
+     the row sticks to the bottom edge of the visible area; the scrim is
+     enabled only in .game--tight (the renderer's measured-overflow state). */
+  position: sticky;
+  bottom: 0;
+  z-index: 7;
+  padding: clamp(4px, 1vh, 10px) 6px calc(clamp(4px, 1vh, 10px) + 2px);
+  transition: background .15s ease;
+}
+.stage.game--tight .actions {
+  background: linear-gradient(180deg, rgba(214, 235, 246, 0), rgba(214, 235, 246, .86) 36%, rgba(214, 235, 246, .94));
 }
 .action-btn {
   padding: 0; border: none; background: none; cursor: pointer;
@@ -735,6 +932,16 @@ body {
 .modal h2 { margin: 0 0 4px; color: var(--navy); font-size: clamp(22px, 5vw, 30px); }
 .modal .m-sub { margin: 4px 0 12px; color: #6d7f8e; font-weight: bold; }
 .modal .m-buttons { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 14px; }
+/* compact settings row (sound toggle) */
+.modal .set-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin: 12px 4px 2px;
+  background: #f4ecd8; border: 3px solid #e2d3ac; border-radius: 14px;
+  padding: 10px 14px; font-weight: bold; color: var(--ink);
+  font-size: clamp(15px, 3vw, 18px);
+}
+.modal .set-row .set-ctrl { display: inline-flex; align-items: center; gap: 10px; }
+.modal .set-row .set-ctrl b { color: #2c6b45; }
 .modal .fact {
   background: #eef7ee; border: 3px dashed #9fd9ae; color: #2c6b45;
   border-radius: 14px; padding: 10px 12px;
@@ -891,9 +1098,12 @@ body {
   .stage.game--advanced .tile { --tile-w: clamp(44px, min(9vw, 8.6vh), 76px); }
   .stage.game--advanced .actions {
     grid-area: actions;
+    position: static; /* side panel layout owns the row; no sticky needed */
     flex-direction: column;
     margin-top: clamp(4px, 1.4vh, 14px);
     gap: clamp(8px, 1.6vh, 16px);
+    background: none;
+    padding: 0;
   }
   .stage.game--advanced .action-btn { width: clamp(104px, 10vw, 156px); }
   /* HUD/progress live outside the grid in their own reserved rows: untouched. */
@@ -901,7 +1111,7 @@ body {
 
 /* TIGHT mode (measured overflow of the centered stack on ANY viewport):
    shrink decorative gaps and board first, typography last. */
-.stage.game--tight { gap: 4px; }
+.stage.game--tight { gap: 4px; justify-content: flex-start; } /* pack from the top so scrolling reaches the banner/board */
 .stage.game--tight .title-banner {
   margin: 0 auto 2px auto;
   padding-top: clamp(3px, .8vh, 8px);

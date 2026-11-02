@@ -1,0 +1,15 @@
+{
+  "note": "percent of hero-animals.png box; playPill now covers the ENTIRE wooden sign (frame + green pill + side leaves) so any tap on the visible button starts the game",
+  "playPill": {
+    "left": 0.04,
+    "top": 0.66,
+    "w": 0.92,
+    "h": 0.3
+  },
+  "greenPillOnly": {
+    "left": 0.19,
+    "top": 0.796,
+    "w": 0.685,
+    "h": 0.096
+  }
+}

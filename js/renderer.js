@@ -43,9 +43,7 @@
       btnHint: $('btn-hint'), levelGrid: $('level-grid'),
       progressTitle: $('progress-title'), progressMarkers: $('progress-markers'),
       overlay: $('modal-overlay'), modal: $('modal'), app: $('app'),
-      boardZone: $('board-zone'),
-      soundState: $('sound-state'),
-      soundLevels: $('btn-sound-levels')
+      boardZone: $('board-zone')
     };
     this._lastTiles = null;
     this._lastSlots = null;
@@ -65,11 +63,16 @@
   };
 
   Renderer.prototype.setSound = function (on) {
-    if (this.el.soundState) this.el.soundState.textContent = on ? 'On' : 'Off';
-    if (this.el.soundLevels) {
-      this.el.soundLevels.classList.toggle('is-off', !on);
-      this.el.soundLevels.setAttribute('aria-label', on ? 'Turn sound off' : 'Turn sound on');
-    }
+    // every sound button carries .btn-sound (home corner, levels header, settings modal)
+    var btns = document.querySelectorAll('.btn-sound');
+    Array.prototype.forEach.call(btns, function (b) {
+      b.classList.toggle('is-off', !on);
+      b.setAttribute('aria-label', on ? 'Turn sound off' : 'Turn sound on');
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    // live label inside the settings dialog, when it is open
+    var state = document.getElementById('settings-sound-state');
+    if (state) state.textContent = on ? 'On' : 'Off';
   };
 
   /* ---------------- level select ---------------- */
@@ -476,7 +479,11 @@
 
   /* ---------------- modals ---------------- */
 
-  Renderer.prototype.openModal = function (html) {
+  // kind 'menu' marks dialogs the player may dismiss themselves (help,
+  // settings); engine dialogs (pause / correct / results / game-over) keep
+  // their own flow and are not Escape-closable.
+  Renderer.prototype.openModal = function (html, kind) {
+    this._modalKind = kind || '';
     this.el.modal.innerHTML = html;
     this.el.overlay.classList.remove('hidden');
     var first = this.el.modal.querySelector('button');
@@ -484,12 +491,51 @@
   };
 
   Renderer.prototype.closeModal = function () {
+    this._modalKind = '';
     this.el.overlay.classList.add('hidden');
     this.el.modal.innerHTML = '';
   };
 
   Renderer.prototype.isModalOpen = function () {
     return !this.el.overlay.classList.contains('hidden');
+  };
+
+  Renderer.prototype.getModalKind = function () {
+    return this._modalKind || '';
+  };
+
+  // "How to play": silhouette -> spell the name (small help panel).
+  Renderer.prototype.showHelp = function () {
+    this.openModal(
+      '<h2>How to Play</h2>' +
+      '<div class="fact">1&nbsp;·&nbsp;Look at the black <b>animal silhouette</b> on the classroom board and guess who it is.</div>' +
+      '<div class="fact">2&nbsp;·&nbsp;Spell the animal\u2019s name: tap the <b>letter buttons</b> to fill the empty slots. Tap a letter in the answer to take it back.</div>' +
+      '<div class="fact">3&nbsp;·&nbsp;Stuck? The <b>hint</b> button reveals one letter for 50&nbsp;\u2605. Solve all 4 animals to finish a level!</div>' +
+      '<div class="m-buttons">' +
+      '<button class="btn btn-green big" data-action="play">\u25B6 Play now</button>' +
+      '<button class="btn btn-blue" data-action="close-modal">Got it</button>' +
+      '</div>'
+    , 'menu');
+  };
+
+  // Compact settings dialog for the settings the game already supports.
+  Renderer.prototype.showSettings = function (soundOn) {
+    this.openModal(
+      '<h2>Settings</h2>' +
+      '<div class="set-row">' +
+      '<span>Sound effects</span>' +
+      '<span class="set-ctrl"><b id="settings-sound-state">' + (soundOn ? 'On' : 'Off') + '</b>' +
+      '<button type="button" class="btn btn-blue icon btn-sound" data-action="sound" aria-label="' +
+        (soundOn ? 'Turn sound off' : 'Turn sound on') + '" aria-pressed="' + soundOn + '">' +
+        '<svg class="snd-on" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M3 9v6h4l5 4.5v-15L7 9H3z"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12"/></svg>' +
+        '<svg class="snd-off" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M3 9v6h4l5 4.5v-15L7 9H3z"/><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" d="m15.5 9.5 5 5m0-5-5 5"/></svg>' +
+      '</button></span>' +
+      '</div>' +
+      '<p class="m-sub">Levels, stars and your star wallet are saved automatically on this device.</p>' +
+      '<div class="m-buttons">' +
+      '<button class="btn btn-green big" data-action="close-modal">Done</button>' +
+      '</div>'
+    , 'menu');
   };
 
   Renderer.prototype.showPause = function () {

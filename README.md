@@ -17,7 +17,7 @@ node tests/static-server.js . 8123
 
 or with Python: `python -m http.server 8123`, or VS Code Live Server.
 All asset and data paths are **relative**, so the game also works from a nested URL
-(e.g. `http://host/games/guess-animal/`) and on GitHub Pages without configuration.
+(e.g. `http://host/my-games/animal-mystery/`) and on GitHub Pages without configuration.
 
 ## Project layout
 
@@ -25,13 +25,14 @@ All asset and data paths are **relative**, so the game also works from a nested 
 index.html                  — document, screens, loading/error surface
 css/style.css               — visual system + responsive layouts (phone/tablet/desktop)
 js/letters.js               — deterministic shuffled letter banks (seeded Fisher–Yates)
-js/game.js                  — game engine: hearts, timer, scoring, hints, level flow
+js/game.js                  — game engine: hearts, timer, scoring, repeatable paid hints, level flow
 js/levels.js                — data loading + integrity validation (run on every load)
-js/storage.js               — progress persistence (best stars/score, unlocks)
+js/storage.js               — progress persistence (best stars/score, unlocks, spendable star wallet)
 js/asset-map.js             — neutral per-question reveal colors, art paths
 js/renderer.js              — paints public engine state to the DOM
 js/controls.js              — tap/click/keyboard input wiring
 js/main.js                  — bootstrap, screen routing, event wiring, tick loop
+js/debug-layout.js          — dev-only layout audit, loaded only with ?debug=layout
 data/questions.json         — 40 questions (id, levelId, animal, answer, hint, fact)
 data/levels.json            — 10 levels × 4 question ids, timers, bank rules
 assets/art/                 — approved art: classroom backgrounds, chalkboard, progress board
@@ -43,9 +44,22 @@ tests/run-tests.js          — content + gameplay + UI integration tests (Node)
 ## Tests
 
 ```bash
-node tests/run-tests.js     # 47 tests: data validation, bank generation, full engine
-                            # behavior, storage, asset integrity, leak checks
+node tests/run-tests.js     # 75 tests: data validation, bank generation, full engine
+                            # behavior, storage + star wallet, asset integrity, leak checks
 ```
+
+## Hint economy (current rules)
+
+- The Hint button is **repeatable**: each accepted press reveals one correct letter at the
+  earliest blank-or-wrong position, locks it, and costs **exactly 50 spendable star points**.
+- Star points live in a **wallet** (`starBalance` in the save), separate from best scores and
+  1–3 star level trophies — spending hints never downgrades earned progress.
+- Every profile receives a **one-time 100-star welcome credit** when the wallet is first
+  created (brand-new players and pre-wallet saves alike; never re-granted on refresh).
+- Correct answers still award the full reward (+100 base, +20 no-hint bonus, streak bonus)
+  and credit the same amount to the wallet once per success. Hints no longer reduce rewards.
+- With fewer than 50 stars the hint is rejected with a friendly "Need 50 stars" message —
+  no charge, no reveal, and the round stays playable.
 
 - **Animal illustrations**: 40 local SVGs in `assets/animals/q001.svg … q040.svg` (neutral names). Sourced from Google Noto Emoji (Apache-2.0), game-icons (CC-BY-3.0), Wikimedia Commons (CC0) and thesvg — full per-file attribution in `assets/animals/CREDITS.md` and `assets/animals/manifest.json`. Each renders twice (black via `brightness(0)` + color layer) and crossfades ~550ms on success. No external requests at runtime.
 
@@ -63,6 +77,13 @@ node tests/run-tests.js     # 47 tests: data validation, bank generation, full e
 - Action buttons (Undo/Clear/Hint/Pause) are CSS-drawn in the same glossy style as the
   approved button art (the packed strip's buttons touch, so they cannot be cut apart
   losslessly).
+- `assets/art/logo.png` (wooden "GUESS THE ANIMAL" sign) and `assets/art/hero-animals.png`
+  (five animals + wooden PLAY sign) are built from the user's approved home-screen art via
+  `node tools/make-home-art.js` (white background flood-removed with anti-aliased fringe
+  decontamination; logo alpha re-binarized) and sized for retina by
+  `node tools/optimize-home-art.js`. The invisible PLAY button overlay is locked to the
+  artwork by the percentages in `assets/art/hero-geometry.json` (mirrored in
+  `css/style.css`). Source references live in `tools/refs/` (never shipped to the page).
 
 ## Deployment
 
