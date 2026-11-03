@@ -1074,66 +1074,79 @@ body {
 
 /* ============================================================
    ADAPTIVE GAMEPLAY LAYOUT — two modes selected by CONTENT + SPACE
-   (renderer toggles .game--advanced for answers >= 8 letters or
-   banks >= 12 tiles; .game--tight is added by a real overflow
-   measurement when the centered stack would not fit).
+   (renderer toggles .game--advanced-desktop for answers >= 8 letters
+   or banks >= 12 tiles, gated by the desktop-landscape media query
+   below; .game--tight is added by a real overflow measurement when
+   the centered stack would not fit).
    ============================================================ */
 
 /* Compact / short-word mode = the default centered stack above, untouched. */
 
-/* WIDE / ADVANCED MODE (desktop landscape with free width): the letter bank
-   and the three action buttons move into a right-side gameplay panel next to
-   the chalkboard; board + answer slots stay the primary focus on the left.
-   Explicit grid areas — no absolute positioning, nothing overlaps. */
-@media (min-width: 1024px) and (orientation: landscape) {
-  .stage.game--advanced {
+/* ADVANCED DESKTOP MODE (reference design): on a desktop-landscape canvas
+   (>= 1100px wide with enough height) long questions arrange into THREE
+   columns — chalkboard + answer slots on the left (~57-62%), the letter bank
+   BESIDE the board (~25-32%), and the Undo/Clear/Hint buttons stacked in a
+   vertical rail to the RIGHT of the bank. Short words, phones and tablets
+   never match this gate and keep the centered stack exactly as it is.
+   Explicit grid areas — no absolute positioning, no scaling, nothing
+   overlaps; the media query is kept character-identical to the
+   matchMedia() gate in renderer.js so class and CSS can never disagree. */
+@media (min-width: 1100px) and (orientation: landscape) and (min-height: 620px) {
+  .stage.game--advanced-desktop {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) clamp(280px, 30vw, 440px);
-    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
     grid-template-areas:
-      "board bank"
-      "slots  actions";
+      "board bank actions"
+      "slots bank actions";
+    align-content: center;   /* one compact, vertically centered gameplay block */
     align-items: center;
-    column-gap: clamp(16px, 2vw, 28px);
-    row-gap: clamp(4px, 1vh, 12px);
+    column-gap: clamp(16px, 2vw, 30px);
+    row-gap: clamp(6px, 1.4vh, 16px);
   }
-  .stage.game--advanced .board-zone {
+  .stage.game--advanced-desktop .board-zone {
     grid-area: board;
-    width: auto; min-width: 0; min-height: 0;
-    height: 100%;
-    justify-content: space-evenly;
+    width: auto;
+    min-width: 0;            /* let the grid column shrink without pushing */
   }
-  .stage.game--advanced .title-banner {
+  .stage.game--advanced-desktop .title-banner {
     margin: 0 auto 2px auto;
     padding-top: clamp(4px, 1vh, 10px);
     padding-bottom: clamp(5px, 1.2vh, 12px);
   }
   /* height-driven board: keeps the 1448/715 aspect, never crops/stretches */
-  .stage.game--advanced .board-frame { width: min(100%, 46vh * 2.02); }
-  .stage.game--advanced .slots { grid-area: slots; }
-  .stage.game--advanced .bank-wrap {
+  .stage.game--advanced-desktop .board-frame { width: min(100%, 48vh * 2.02); }
+  .stage.game--advanced-desktop .slots {
+    grid-area: slots;
+    margin-top: 0;
+    max-width: 100%;
+  }
+  .stage.game--advanced-desktop .bank-wrap {
     grid-area: bank;
-    min-width: 0; min-height: 0;
+    min-width: 0;
+    display: flex;
     align-items: center;
-    padding: 2px 4px;
-    overflow-y: auto; /* bounded internal scroll only if a very short window demands it */
+    justify-content: center;
   }
-  /* side panel bank: 4 columns x 3-4 rows for 12-16 tiles, big legible tiles */
-  .stage.game--advanced .bank {
+  /* side panel bank: 4 columns x 3 rows for the 12-tile banks, legible tiles */
+  .stage.game--advanced-desktop .bank {
     grid-template-columns: repeat(var(--cols-panel, 4), auto);
-    gap: clamp(6px, 1.4vh, 14px) clamp(8px, 1vw, 14px);
+    gap: clamp(8px, 1.6vh, 16px) clamp(8px, 1vw, 16px);
   }
-  .stage.game--advanced .tile { --tile-w: clamp(44px, min(9vw, 8.6vh), 76px); }
-  .stage.game--advanced .actions {
+  .stage.game--advanced-desktop .tile { --tile-w: clamp(44px, min(9vw, 8.6vh), 76px); }
+  /* vertical button rail immediately right of the bank: Undo, Clear, Hint
+     (existing DOM order) — the same buttons, artwork and handlers, just placed */
+  .stage.game--advanced-desktop .actions {
     grid-area: actions;
-    position: static; /* side panel layout owns the row; no sticky needed */
+    position: static;        /* the grid column owns placement; no sticky needed */
     flex-direction: column;
-    margin-top: clamp(4px, 1.4vh, 14px);
-    gap: clamp(8px, 1.6vh, 16px);
+    align-self: center;
+    margin-top: 0;
+    gap: clamp(10px, 2.2vh, 22px);
     background: none;
     padding: 0;
   }
-  .stage.game--advanced .action-btn { width: clamp(104px, 10vw, 156px); }
+  .stage.game--advanced-desktop .action-btn { width: clamp(104px, 9.5vw, 150px); }
   /* HUD/progress live outside the grid in their own reserved rows: untouched. */
 }
 

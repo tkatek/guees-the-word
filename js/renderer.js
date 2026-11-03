@@ -177,8 +177,12 @@
     var e = this.el;
     var wordLength = state.slots.length;
     // Two real layout modes, chosen from QUESTION CONTENT (not the level number):
-    // advanced = long answer or a big letter bank; CSS picks side-panel vs stack by viewport.
-    e.stage.classList.toggle('game--advanced', wordLength >= 8 || state.tiles.length >= 12);
+    // advanced = long answer (>= 8 letters) or a big letter bank (>= 12 tiles).
+    // updateAdvancedLayout() applies .game--advanced-desktop only when that
+    // content flag AND the desktop-landscape viewport gate both hold, so short
+    // words always keep the centered stack — at any level.
+    this._advancedContent = wordLength >= 8 || state.tiles.length >= 12;
+    this.updateAdvancedLayout();
     e.hud.level.textContent = 'LEVEL ' + (state.levelIndex + 1);
     e.hud.question.textContent = 'Q ' + (state.questionIndex + 1) + '/' + state.questionCount;
     e.hud.timer.classList.toggle('hidden', !state.timer);
@@ -190,6 +194,33 @@
     this._renderActions(state);
     this.hideBubble();
     this._scheduleFitCheck();
+  };
+
+  /*
+   * Viewport half of the advanced-layout activation rule. The media query is
+   * kept character-identical to the @media gate in style.css, so the class and
+   * the CSS can never disagree about which composition is showing. Re-run ONLY
+   * when a question starts or on a genuine viewport resize (main.js) — never
+   * during letter input — so the layout never shifts while the player types.
+   * Below the gate (narrow window, portrait, short screens) the class comes
+   * off and the normal responsive centered stack returns, question state intact.
+   */
+  Renderer.prototype.updateAdvancedLayout = function () {
+    var mq = (typeof window !== 'undefined' && window.matchMedia)
+      ? window.matchMedia('(min-width: 1100px) and (orientation: landscape) and (min-height: 620px)')
+      : null;
+    var active = !!this._advancedContent && !!mq && mq.matches;
+    var stage = this.el.stage;
+    // A tight-mode decision is measured on ONE composition; switching between
+    // the centered stack and the advanced grid invalidates it. Clear it here so
+    // the next scheduled check re-decides from a clean slate (otherwise the
+    // hysteresis band can hold a stale "tight" onto a layout that fits).
+    if (stage.classList.contains('game--advanced-desktop') !== active) {
+      this._tight = false;
+      stage.classList.remove('game--tight');
+    }
+    stage.classList.toggle('game--advanced-desktop', active);
+    return active;
   };
 
   /*
@@ -362,6 +393,13 @@
     var stage = this.el.stage;
     var cs = getComputedStyle(stage);
     var usable = stage.clientWidth - parseFloat(cs.paddingLeft || '0') - parseFloat(cs.paddingRight || '0');
+    // Advanced desktop mode confines the slots to the LEFT grid column (beside
+    // the bank rail), so the row grouping must be derived from THAT column.
+    // Measuring the full stage width would let a 12-slot row grow underneath
+    // the letter bank and overflow the slots container.
+    if (stage.classList.contains('game--advanced-desktop') && this.el.slots.clientWidth > 0) {
+      usable = this.el.slots.clientWidth;
+    }
     // mirror the CSS row gap clamp(5px, 1.2vw, 14px) so art + gaps fit exactly
     var gap = Math.max(5, Math.min(14, stage.clientWidth * 0.012));
     var capacity = rowCapacity(usable, gap, 44);
@@ -423,7 +461,7 @@
       // 4 full-width columns (3-4 rows) for 10-16 tile banks
       var colsNarrow = Letters.gridColumns(count);
       // desktop side panel keeps its own 3/4-column rhythm regardless of the
-      // phone stack geometry (--cols-panel is read by .game--advanced only)
+      // phone stack geometry (--cols-panel is read by .game--advanced-desktop only)
       var colsPanel = count <= 9 ? 3 : 4;
       box.setAttribute('data-cols', String(colsNarrow));
       box.style.setProperty('--cols-wide', String(colsWide));

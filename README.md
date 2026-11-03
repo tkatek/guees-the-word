@@ -83,7 +83,7 @@ node tests/run-tests.js     # 75 tests: data validation, bank generation, full e
   decontamination; logo alpha re-binarized) and sized for retina by
   `node tools/optimize-home-art.js`. The invisible PLAY button overlay is locked to the
   artwork by the percentages in `assets/art/hero-geometry.json` (mirrored in
-  `css/style.css`). Source references live in `tools/refs/` (never shipped to the page).
+  `css/style.css`).
 
 ## Deployment
 
